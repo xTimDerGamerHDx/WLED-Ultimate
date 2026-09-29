@@ -54,6 +54,7 @@ jobs:
           if [ -d ultimate/overlay/mm ]; then
             rsync -a ultimate/overlay/mm/ source/
           fi
+          python ultimate/scripts/apply_mm_ultimate.py source
 
       - name: Build firmware
         working-directory: source
