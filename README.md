@@ -10,18 +10,24 @@ WLED Ultimate is a custom firmware project that combines the current WLED develo
 
 Functional integration baseline based on `MoonModules/WLED-MM:mdev`. This channel is intended to provide the MM audio/effect stack and Ethernet-capable ESP32 builds immediately while WLED Ultimate integration work continues.
 
-Initial targets:
+Targets:
 
+- ESP32 4 MB
 - ESP32 4 MB + Ethernet
+- **Gledopto Elite 4D-EXMU / GL-C-618WL** (dedicated Ethernet + board defaults)
 - ESP32 16 MB + Ethernet
 - ESP32-S3 8 MB + OPI PSRAM
 - ESP32-S3 16 MB + PSRAM/HUB75
 
+Board-specific documentation:
+
+- [`docs/boards/gledopto-gl-c-618wl.md`](docs/boards/gledopto-gl-c-618wl.md)
+
 ### Ultimate-17dev
 
-Experimental channel based on `wled/WLED:main`. As of 2026-09-30, the latest stable upstream WLED release is v16.0.1, so this repository treats current `main` as the development base toward the next WLED generation rather than pretending that a stable v17.0.0 release already exists.
+Experimental channel based on `wled/WLED:main`. This repository treats current upstream `main` as the development base toward the next WLED generation rather than labeling it as a stable WLED 17 release.
 
-Initial targets:
+Targets:
 
 - ESP32 AudioReactive V4
 - ESP32 Ethernet AudioReactive V4
@@ -35,6 +41,7 @@ Initial targets:
 - Particle / PS effects
 - Ethernet + Wi-Fi fallback
 - ESP32-S3 + PSRAM optimized builds
+- dedicated controller profiles
 - 1D and 2D effects
 - HUB75-capable build variants
 - MQTT / Home Assistant
@@ -47,7 +54,7 @@ Initial targets:
 ```text
 .github/workflows/      CI firmware builds
 config/                 PlatformIO overrides for each build channel
-docs/                   architecture and porting notes
+docs/                   architecture, board and porting notes
 overlay/                 WLED Ultimate source overlays/patches
 scripts/                 sync/merge/validation helpers
 ```
@@ -62,7 +69,13 @@ The CI workflow checks out the selected upstream source and injects the appropri
 git clone https://github.com/MoonModules/WLED-MM.git --branch mdev source
 cp config/platformio_override.mm.ini source/platformio_override.ini
 cd source
-pio run -e ultimate_esp32_4mb_eth
+pio run -e ultimate_esp32_4mb
+```
+
+Gledopto GL-C-618WL:
+
+```bash
+pio run -e ultimate_gledopto_gl_c_618wl
 ```
 
 ### Ultimate-17dev
