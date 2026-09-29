@@ -1,0 +1,5 @@
+{
+  "name": "WLED_Ultimate",
+  "build": { "libArchive": false },
+  "dependencies": {}
+}
