@@ -21,6 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         env:
+          - ultimate_esp32_4mb
           - ultimate_esp32_4mb_eth
           - ultimate_esp32_16mb_eth
           - ultimate_esp32s3_8mb_psram
