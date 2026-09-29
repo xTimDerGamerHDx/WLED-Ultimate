@@ -44,6 +44,9 @@ extern "C" void wledUltimate17SetAudioSync(bool enabled) {
 
 u = ultimate.read_text(encoding="utf-8")
 
+# WLED 17dev exposes inter-usermod access as a static UsermodManager API.
+u = u.replace("usermods.getUMData(", "UsermodManager::getUMData(")
+
 if "wledUltimate17SetAudioProcessing" not in u:
     marker = '#include "wled.h"\n'
     decl = '''#include "wled.h"\n\nextern "C" void wledUltimate17SetAudioProcessing(bool enabled);\nextern "C" void wledUltimate17SetAudioSync(bool enabled);\n'''
@@ -52,8 +55,8 @@ if "wledUltimate17SetAudioProcessing" not in u:
     u = u.replace(marker, decl, 1)
 
 # WLED 17dev no longer exposes the old doSerializeConfig global. Queue config
-# writes from the JSON callback and perform serializeConfig() later in loop(),
-# as recommended by WLED's usermod API, to avoid filesystem writes in a network callback.
+# writes from the JSON callback and perform serializeConfigToFS() later in loop(),
+# avoiding filesystem writes from the network callback.
 if "saveConfigPending" not in u:
     marker = "    uint8_t highPerformanceFps = 60;\n"
     if marker not in u:
@@ -82,7 +85,7 @@ if "void loop() override" not in u:
     loop = '''    void loop() override {
       if (saveConfigPending) {
         saveConfigPending = false;
-        serializeConfig();
+        serializeConfigToFS();
       }
       if (millis() - lastMasterApply >= 1000) {
         lastMasterApply = millis();
@@ -96,8 +99,11 @@ if "void loop() override" not in u:
 else:
     # Keep the patch idempotent if a future overlay already contains loop().
     loop_marker = "    void loop() override {\n"
-    if "saveConfigPending = false;\n        serializeConfig();" not in u and loop_marker in u:
-        u = u.replace(loop_marker, loop_marker + "      if (saveConfigPending) {\n        saveConfigPending = false;\n        serializeConfig();\n      }\n", 1)
+    if "saveConfigPending = false;\n        serializeConfigToFS();" not in u and loop_marker in u:
+        u = u.replace(loop_marker, loop_marker + "      if (saveConfigPending) {\n        saveConfigPending = false;\n        serializeConfigToFS();\n      }\n", 1)
+
+# If an earlier patch revision injected serializeConfig(), upgrade it too.
+u = u.replace("serializeConfig();", "serializeConfigToFS();")
 
 ultimate.write_text(u, encoding="utf-8")
-print("WLED Ultimate 17dev AudioReactive bridge + deferred config persistence applied")
+print("WLED Ultimate 17dev bridge adapted to current UsermodManager + config APIs")
