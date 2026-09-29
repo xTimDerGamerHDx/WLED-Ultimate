@@ -112,6 +112,7 @@ jobs:
           if [ -d ultimate/overlay/wled17 ]; then
             rsync -a ultimate/overlay/wled17/ source/
           fi
+          python ultimate/scripts/apply_wled17_ultimate.py source
 
       - name: Build firmware
         working-directory: source
