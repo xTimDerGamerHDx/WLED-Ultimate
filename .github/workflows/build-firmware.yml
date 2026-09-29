@@ -1,0 +1,152 @@
+name: Build WLED Ultimate firmware
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - feature/**
+    tags:
+      - 'v*'
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  build-mm:
+    name: MM / ${{ matrix.env }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env:
+          - ultimate_esp32_4mb_eth
+          - ultimate_esp32_16mb_eth
+          - ultimate_esp32s3_8mb_psram
+          - ultimate_esp32s3_16mb_hub75
+
+    steps:
+      - name: Checkout WLED Ultimate
+        uses: actions/checkout@v4
+        with:
+          path: ultimate
+
+      - name: Checkout WLED-MM
+        uses: actions/checkout@v4
+        with:
+          repository: MoonModules/WLED-MM
+          ref: mdev
+          path: source
+
+      - name: Install PlatformIO
+        run: python -m pip install --upgrade platformio
+
+      - name: Apply WLED Ultimate configuration
+        shell: bash
+        run: |
+          cp ultimate/config/platformio_override.mm.ini source/platformio_override.ini
+          if [ -d ultimate/overlay/mm ]; then
+            rsync -a ultimate/overlay/mm/ source/
+          fi
+
+      - name: Build firmware
+        working-directory: source
+        run: pio run -e ${{ matrix.env }}
+
+      - name: Collect binaries
+        shell: bash
+        run: |
+          mkdir -p dist
+          shopt -s nullglob
+          for f in source/.pio/build/${{ matrix.env }}/*.bin; do
+            cp "$f" "dist/WLED-Ultimate-MM-${{ matrix.env }}-$(basename "$f")"
+          done
+          test -n "$(find dist -type f -name '*.bin' -print -quit)"
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WLED-Ultimate-MM-${{ matrix.env }}
+          path: dist/*.bin
+          if-no-files-found: error
+
+  build-17dev:
+    name: 17dev / ${{ matrix.env }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env:
+          - ultimate_wled17_esp32
+          - ultimate_wled17_esp32_eth
+          - ultimate_wled17_esp32s3_8mb
+          - ultimate_wled17_esp32s3_16mb
+
+    steps:
+      - name: Checkout WLED Ultimate
+        uses: actions/checkout@v4
+        with:
+          path: ultimate
+
+      - name: Checkout upstream WLED
+        uses: actions/checkout@v4
+        with:
+          repository: wled/WLED
+          ref: main
+          path: source
+
+      - name: Install PlatformIO
+        run: python -m pip install --upgrade platformio
+
+      - name: Apply WLED Ultimate configuration
+        shell: bash
+        run: |
+          cp ultimate/config/platformio_override.wled17.ini source/platformio_override.ini
+          if [ -d ultimate/overlay/wled17 ]; then
+            rsync -a ultimate/overlay/wled17/ source/
+          fi
+
+      - name: Build firmware
+        working-directory: source
+        run: pio run -e ${{ matrix.env }}
+
+      - name: Collect binaries
+        shell: bash
+        run: |
+          mkdir -p dist
+          shopt -s nullglob
+          for f in source/.pio/build/${{ matrix.env }}/*.bin; do
+            cp "$f" "dist/WLED-Ultimate-17dev-${{ matrix.env }}-$(basename "$f")"
+          done
+          test -n "$(find dist -type f -name '*.bin' -print -quit)"
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WLED-Ultimate-17dev-${{ matrix.env }}
+          path: dist/*.bin
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs:
+      - build-mm
+      - build-17dev
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all firmware artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" artifacts/*.bin \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "WLED Ultimate ${GITHUB_REF_NAME}" \
+            --generate-notes
