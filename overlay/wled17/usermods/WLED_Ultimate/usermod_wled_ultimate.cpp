@@ -2,6 +2,97 @@
 
 static const char ULTIMATE_NAME[] PROGMEM = "WLED Ultimate";
 
+static bool ultimate17AudioEngineMaster = true;
+static bool ultimate17ParticleFxMaster = true;
+static bool ultimate17AudioParticleFxMaster = true;
+
+static bool ultimate17GetAudio(float &volume, uint8_t *&fft, bool &peak) {
+  um_data_t *data = nullptr;
+  if (!usermods.getUMData(&data, USERMOD_ID_AUDIOREACTIVE) || data == nullptr || data->u_size < 4) return false;
+  if (data->u_data[0] == nullptr || data->u_data[2] == nullptr || data->u_data[3] == nullptr) return false;
+  volume = *reinterpret_cast<float*>(data->u_data[0]);
+  fft = reinterpret_cast<uint8_t*>(data->u_data[2]);
+  peak = *reinterpret_cast<bool*>(data->u_data[3]);
+  return true;
+}
+
+static void mode_ultimate17_audio_particles() {
+  if (!ultimate17AudioEngineMaster || !ultimate17ParticleFxMaster || !ultimate17AudioParticleFxMaster) {
+    SEGMENT.fadeToBlackBy(96);
+    return;
+  }
+
+  float volume = 0.0f;
+  uint8_t *fft = nullptr;
+  bool peak = false;
+  if (!ultimate17GetAudio(volume, fft, peak) || SEGLEN == 0) {
+    SEGMENT.fadeToBlackBy(96);
+    return;
+  }
+
+  const uint8_t bass = max(fft[0], fft[1]);
+  const uint8_t mids = max(fft[5], fft[7]);
+  const uint8_t treble = max(fft[12], fft[15]);
+  SEGMENT.fadeToBlackBy(12 + ((255 - SEGMENT.intensity) >> 2));
+
+  uint8_t count = 1 + (bass >> 5) + (mids >> 6);
+  if (peak) count += 5;
+  if (count > 12) count = 12;
+
+  for (uint8_t i = 0; i < count; i++) {
+    uint32_t phase = (millis() * (2U + (SEGMENT.speed >> 6))) + (i * 977U) + (bass * 17U) + (treble * 7U);
+    uint16_t pos = phase % SEGLEN;
+    uint8_t pal = uint8_t(bass + (i * 23U) + (treble >> 1));
+    uint8_t level = max(bass, max(mids, treble));
+    uint8_t bri = qadd8(72, level);
+    if (volume > 255.0f) bri = 255;
+    uint32_t color = SEGMENT.color_from_palette(pal, false, true, 0, bri);
+    SEGMENT.addPixelColor(pos, color, true);
+    if (peak && SEGLEN > 2) {
+      SEGMENT.addPixelColor((pos + 1) % SEGLEN, color, true);
+      SEGMENT.addPixelColor((pos + SEGLEN - 1) % SEGLEN, color, true);
+    }
+  }
+}
+
+static const char _data_ULTIMATE17_AUDIO_PARTICLES[] PROGMEM =
+  "Ultimate Audio Particles@Motion,Trail;!,!;!;1;pal=11";
+
+static void mode_ultimate17_audio_spectrum() {
+  if (!ultimate17AudioEngineMaster || !ultimate17ParticleFxMaster || !ultimate17AudioParticleFxMaster) {
+    SEGMENT.fadeToBlackBy(96);
+    return;
+  }
+
+  float volume = 0.0f;
+  uint8_t *fft = nullptr;
+  bool peak = false;
+  if (!ultimate17GetAudio(volume, fft, peak) || SEGLEN == 0) {
+    SEGMENT.fadeToBlackBy(96);
+    return;
+  }
+
+  SEGMENT.fadeToBlackBy(80);
+  uint8_t threshold = 8 + ((255 - SEGMENT.intensity) >> 3);
+  for (uint16_t i = 0; i < SEGLEN; i++) {
+    uint8_t bin = (uint32_t(i) * 16U) / SEGLEN;
+    if (bin > 15) bin = 15;
+    uint8_t level = fft[bin];
+    if (level > threshold) {
+      uint8_t bri = qadd8(48, level);
+      uint32_t color = SEGMENT.color_from_palette(bin * 16U, false, true, 0, bri);
+      SEGMENT.setPixelColor(i, color);
+    }
+  }
+  if (peak) {
+    uint16_t center = SEGLEN >> 1;
+    SEGMENT.setPixelColor(center, SEGMENT.color_from_palette(255, false, true, 0, 255));
+  }
+}
+
+static const char _data_ULTIMATE17_AUDIO_SPECTRUM[] PROGMEM =
+  "Ultimate Audio Spectrum@Speed,Sensitivity;!,!;!;1;pal=71";
+
 static const char WLED_ULTIMATE_PAGE[] PROGMEM = R"ULTIMATEHTML(
 <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>WLED Ultimate</title><style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#071019;color:#eef7ff}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#12304a 0,#071019 42%);min-height:100vh}.wrap{max-width:920px;margin:auto;padding:22px}.head{display:flex;gap:14px;align-items:center;margin-bottom:18px}.logo{width:48px;height:48px;border-radius:14px;background:#18d67c;box-shadow:0 0 28px #18d67c66;display:grid;place-items:center;color:#04120b;font-weight:900}.title h1{margin:0;font-size:25px}.title p{margin:4px 0 0;color:#8ca6b8;font-size:13px}.status{margin-left:auto;padding:7px 10px;border:1px solid #27445b;border-radius:999px;color:#92abc0;font-size:12px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px}.card{background:#0d1c28;border:1px solid #203747;border-radius:15px;padding:15px;display:flex;align-items:center;gap:12px;min-height:74px}.txt{flex:1}.name{font-weight:700}.sub{font-size:11px;color:#7894a8;margin-top:3px}.sw{position:relative;width:47px;height:27px;display:inline-block}.sw input{display:none}.sl{position:absolute;inset:0;background:#293946;border-radius:18px;transition:.2s}.sl:before{content:"";position:absolute;width:21px;height:21px;left:3px;top:3px;background:#dbe9f2;border-radius:50%;transition:.2s}.sw input:checked+.sl{background:#18d67c}.sw input:checked+.sl:before{transform:translateX(20px);background:#04120b}.sw input:disabled+.sl{opacity:.3}.perf{margin-top:12px;background:#0d1c28;border:1px solid #203747;border-radius:15px;padding:15px}.perfline{display:flex;align-items:center;gap:12px}.perf input[type=range]{width:100%}.fps{min-width:58px;text-align:right;font-weight:700;color:#18d67c}.note{margin-top:16px;color:#7792a6;font-size:12px;line-height:1.5}.ok{color:#18d67c}.err{color:#ff6b6b}@media(max-width:560px){.wrap{padding:14px}.status{display:none}}
@@ -19,7 +110,7 @@ class WLEDUltimate17Usermod : public Usermod {
   private:
     bool advancedAudioEngine = true;
     bool particleFx = true;
-    bool audioParticleFx = false;
+    bool audioParticleFx = true;
     bool wledMmEffects = false;
     bool ethernet = true;
     bool wifiFallback = true;
@@ -47,6 +138,9 @@ class WLEDUltimate17Usermod : public Usermod {
     }
 
     void applyRuntime() {
+      ultimate17AudioEngineMaster = advancedAudioEngine;
+      ultimate17ParticleFxMaster = particleFx;
+      ultimate17AudioParticleFxMaster = audioParticleFx;
       if (!psramAvailable()) psramLedBuffer = false;
       if (!ethernetAvailable()) ethernet = false;
       uint8_t fps = highPerformanceFps;
@@ -59,6 +153,8 @@ class WLEDUltimate17Usermod : public Usermod {
   public:
     void setup() override {
       applyRuntime();
+      strip.addEffect(255, &mode_ultimate17_audio_particles, _data_ULTIMATE17_AUDIO_PARTICLES);
+      strip.addEffect(255, &mode_ultimate17_audio_spectrum, _data_ULTIMATE17_AUDIO_SPECTRUM);
       server.on("/ultimate", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send_P(200, "text/html", WLED_ULTIMATE_PAGE);
       });
@@ -95,7 +191,7 @@ class WLEDUltimate17Usermod : public Usermod {
 #else
       c["particleAvailable"] = true;
 #endif
-      c["audioParticleAvailable"] = false;
+      c["audioParticleAvailable"] = true;
       c["mmEffectsAvailable"] = false;
       c["ethernetAvailable"] = ethernetAvailable();
       c["wifiAvailable"] = true;
@@ -148,7 +244,7 @@ class WLEDUltimate17Usermod : public Usermod {
       bool complete = !top.isNull();
       complete &= getJsonValue(top["Advanced Audio Engine"], advancedAudioEngine, true);
       complete &= getJsonValue(top["Particle FX"], particleFx, true);
-      complete &= getJsonValue(top["Audio Particle FX"], audioParticleFx, false);
+      complete &= getJsonValue(top["Audio Particle FX"], audioParticleFx, true);
       complete &= getJsonValue(top["WLED-MM Effects"], wledMmEffects, false);
       complete &= getJsonValue(top["Ethernet"], ethernet, true);
       complete &= getJsonValue(top["WiFi fallback"], wifiFallback, true);
