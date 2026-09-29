@@ -23,6 +23,7 @@ jobs:
         env:
           - ultimate_esp32_4mb
           - ultimate_esp32_4mb_eth
+          - ultimate_gledopto_gl_c_618wl
           - ultimate_esp32_16mb_eth
           - ultimate_esp32s3_8mb_psram
           - ultimate_esp32s3_16mb_hub75
