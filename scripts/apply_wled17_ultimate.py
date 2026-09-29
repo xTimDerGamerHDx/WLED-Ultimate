@@ -43,6 +43,7 @@ extern "C" void wledUltimate17SetAudioSync(bool enabled) {
     audio.write_text(audio_text, encoding="utf-8")
 
 u = ultimate.read_text(encoding="utf-8")
+
 if "wledUltimate17SetAudioProcessing" not in u:
     marker = '#include "wled.h"\n'
     decl = '''#include "wled.h"\n\nextern "C" void wledUltimate17SetAudioProcessing(bool enabled);\nextern "C" void wledUltimate17SetAudioSync(bool enabled);\n'''
@@ -50,10 +51,21 @@ if "wledUltimate17SetAudioProcessing" not in u:
         raise SystemExit("unable to locate 17dev Ultimate include marker")
     u = u.replace(marker, decl, 1)
 
-if "lastMasterApply" not in u:
+# WLED 17dev no longer exposes the old doSerializeConfig global. Queue config
+# writes from the JSON callback and perform serializeConfig() later in loop(),
+# as recommended by WLED's usermod API, to avoid filesystem writes in a network callback.
+if "saveConfigPending" not in u:
     marker = "    uint8_t highPerformanceFps = 60;\n"
     if marker not in u:
         raise SystemExit("unable to locate 17dev Ultimate member marker")
+    u = u.replace(marker, marker + "    bool saveConfigPending = false;\n", 1)
+
+u = u.replace("if (changed) doSerializeConfig = true;", "if (changed) saveConfigPending = true;")
+
+if "lastMasterApply" not in u:
+    marker = "    bool saveConfigPending = false;\n"
+    if marker not in u:
+        marker = "    uint8_t highPerformanceFps = 60;\n"
     u = u.replace(marker, marker + "    uint32_t lastMasterApply = 0;\n", 1)
 
 if "wledUltimate17SetAudioProcessing(advancedAudioEngine);" not in u:
@@ -68,6 +80,10 @@ if "void loop() override" not in u:
     if marker not in u:
         raise SystemExit("unable to locate 17dev addToJsonInfo()")
     loop = '''    void loop() override {
+      if (saveConfigPending) {
+        saveConfigPending = false;
+        serializeConfig();
+      }
       if (millis() - lastMasterApply >= 1000) {
         lastMasterApply = millis();
         wledUltimate17SetAudioProcessing(advancedAudioEngine);
@@ -77,6 +93,11 @@ if "void loop() override" not in u:
 
 '''
     u = u.replace(marker, loop + marker, 1)
+else:
+    # Keep the patch idempotent if a future overlay already contains loop().
+    loop_marker = "    void loop() override {\n"
+    if "saveConfigPending = false;\n        serializeConfig();" not in u and loop_marker in u:
+        u = u.replace(loop_marker, loop_marker + "      if (saveConfigPending) {\n        saveConfigPending = false;\n        serializeConfig();\n      }\n", 1)
 
 ultimate.write_text(u, encoding="utf-8")
-print("WLED Ultimate 17dev AudioReactive master bridge applied")
+print("WLED Ultimate 17dev AudioReactive bridge + deferred config persistence applied")
