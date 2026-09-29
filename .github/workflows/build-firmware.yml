@@ -5,10 +5,13 @@ on:
   push:
     branches:
       - main
-      - feature/**
     tags:
       - 'v*'
   pull_request:
+
+concurrency:
+  group: wled-ultimate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
