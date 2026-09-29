@@ -6,8 +6,8 @@ static const char WLED_ULTIMATE_PAGE[] PROGMEM = R"ULTIMATEHTML(
 <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>WLED Ultimate</title><style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#071019;color:#eef7ff}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#12304a 0,#071019 42%);min-height:100vh}.wrap{max-width:920px;margin:auto;padding:22px}.head{display:flex;gap:14px;align-items:center;margin-bottom:18px}.logo{width:48px;height:48px;border-radius:14px;background:#18d67c;box-shadow:0 0 28px #18d67c66;display:grid;place-items:center;color:#04120b;font-weight:900}.title h1{margin:0;font-size:25px}.title p{margin:4px 0 0;color:#8ca6b8;font-size:13px}.status{margin-left:auto;padding:7px 10px;border:1px solid #27445b;border-radius:999px;color:#92abc0;font-size:12px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px}.card{background:#0d1c28;border:1px solid #203747;border-radius:15px;padding:15px;display:flex;align-items:center;gap:12px;min-height:74px}.card:hover{border-color:#35627e}.txt{flex:1}.name{font-weight:700}.sub{font-size:11px;color:#7894a8;margin-top:3px}.sw{position:relative;width:47px;height:27px;display:inline-block}.sw input{display:none}.sl{position:absolute;inset:0;background:#293946;border-radius:18px;transition:.2s}.sl:before{content:"";position:absolute;width:21px;height:21px;left:3px;top:3px;background:#dbe9f2;border-radius:50%;transition:.2s}.sw input:checked+.sl{background:#18d67c}.sw input:checked+.sl:before{transform:translateX(20px);background:#04120b}.sw input:disabled+.sl{opacity:.35}.perf{margin-top:12px;background:#0d1c28;border:1px solid #203747;border-radius:15px;padding:15px}.perfline{display:flex;align-items:center;gap:12px}.perf input[type=range]{width:100%}.fps{min-width:58px;text-align:right;font-weight:700;color:#18d67c}.note{margin-top:16px;color:#7792a6;font-size:12px;line-height:1.5}.ok{color:#18d67c}.err{color:#ff6b6b}@media(max-width:560px){.wrap{padding:14px}.status{display:none}}
-</style></head><body><div class="wrap"><div class="head"><div class="logo">U</div><div class="title"><h1>WLED Ultimate</h1><p>MoonModules control layer</p></div><div id="status" class="status">Connecting...</div></div><div id="grid" class="grid"></div><div class="perf"><div class="perfline"><div class="txt"><div class="name">High Performance FPS</div><div class="sub">Applied immediately while High Performance Mode is enabled</div></div><input id="fps" type="range" min="20" max="120" step="1"><div id="fpsv" class="fps">60 FPS</div></div></div><div class="note">High Performance Mode is runtime-wired now. The remaining switches are persistent Ultimate control flags and are being connected to the Audio, Particle, Network and PSRAM subsystems without changing this UI/API contract.</div></div><script>
-const defs=[['advancedAudioEngine','Advanced Audio Engine','FFT / AudioReactive control'],['particleFx','Particle FX','Particle-system effects'],['audioParticleFx','Audio Particle FX','Audio-driven particle bridge'],['wledMmEffects','WLED-MM Effects','MoonModules effect set'],['ethernet','Ethernet','Wired network control'],['wifiFallback','WiFi fallback','Fallback network path'],['audioUdpSync','Audio UDP Sync','Network audio synchronization'],['highPerformanceMode','High Performance Mode','Higher target render rate'],['psramLedBuffer','PSRAM LED Buffer','PSRAM-backed LED buffering'],['experimentalEffects','Experimental Effects','Experimental effect group']];
+</style></head><body><div class="wrap"><div class="head"><div class="logo">U</div><div class="title"><h1>WLED Ultimate</h1><p>MoonModules control layer</p></div><div id="status" class="status">Connecting...</div></div><div id="grid" class="grid"></div><div class="perf"><div class="perfline"><div class="txt"><div class="name">High Performance FPS</div><div class="sub">Applied immediately while High Performance Mode is enabled</div></div><input id="fps" type="range" min="20" max="120" step="1"><div id="fpsv" class="fps">60 FPS</div></div></div><div class="note">Advanced Audio Engine, Audio UDP Sync and High Performance Mode are runtime-wired. The remaining switches are persistent Ultimate control flags while their engine hooks are added.</div></div><script>
+const defs=[['advancedAudioEngine','Advanced Audio Engine','Master switch for local audio processing'],['particleFx','Particle FX','Particle-system effects'],['audioParticleFx','Audio Particle FX','Audio-driven particle bridge'],['wledMmEffects','WLED-MM Effects','MoonModules effect set'],['ethernet','Ethernet','Wired network control'],['wifiFallback','WiFi fallback','Fallback network path'],['audioUdpSync','Audio UDP Sync','Master switch for network audio synchronization'],['highPerformanceMode','High Performance Mode','Higher target render rate'],['psramLedBuffer','PSRAM LED Buffer','PSRAM-backed LED buffering'],['experimentalEffects','Experimental Effects','Experimental effect group']];
 const grid=document.getElementById('grid'),statusEl=document.getElementById('status'),fps=document.getElementById('fps'),fpsv=document.getElementById('fpsv');
 for(const d of defs){let c=document.createElement('div');c.className='card';c.innerHTML=`<div class="txt"><div class="name">${d[1]}</div><div class="sub">${d[2]}</div></div><label class="sw"><input id="${d[0]}" type="checkbox"><span class="sl"></span></label>`;grid.appendChild(c);document.getElementById(d[0]).addEventListener('change',e=>send(d[0],e.target.checked));}
 fps.addEventListener('input',()=>fpsv.textContent=fps.value+' FPS');fps.addEventListener('change',()=>send('highPerformanceFps',Number(fps.value)));
@@ -30,6 +30,10 @@ class WLEDUltimateUsermod : public Usermod {
     bool psramLedBuffer = false;
     bool experimentalEffects = true;
     uint8_t highPerformanceFps = 60;
+    uint32_t lastMasterApply = 0;
+#ifdef USERMOD_AUDIOREACTIVE
+    uint8_t rememberedAudioSyncMode = AUDIOSYNC_REC_PLUS;
+#endif
 
     bool psramAvailable() const {
 #if defined(BOARD_HAS_PSRAM) || defined(WLED_USE_PSRAM) || defined(WLED_USE_PSRAM_JSON) || defined(WLED_ULTIMATE_PSRAM)
@@ -39,7 +43,24 @@ class WLEDUltimateUsermod : public Usermod {
 #endif
     }
 
+    void applyAudioMasters() {
+#ifdef USERMOD_AUDIOREACTIVE
+      disableSoundProcessing = !advancedAudioEngine;
+      if (audioUdpSync) {
+        if (audioSyncEnabled == AUDIOSYNC_NONE) {
+          audioSyncEnabled = rememberedAudioSyncMode ? rememberedAudioSyncMode : AUDIOSYNC_REC_PLUS;
+        } else {
+          rememberedAudioSyncMode = audioSyncEnabled;
+        }
+      } else {
+        if (audioSyncEnabled != AUDIOSYNC_NONE) rememberedAudioSyncMode = audioSyncEnabled;
+        audioSyncEnabled = AUDIOSYNC_NONE;
+      }
+#endif
+    }
+
     void applyRuntimeSettings() {
+      applyAudioMasters();
       if (highPerformanceMode) {
         uint8_t fps = highPerformanceFps;
         if (fps < 20) fps = 20;
@@ -56,11 +77,22 @@ class WLEDUltimateUsermod : public Usermod {
     WLEDUltimateUsermod(const char *name, bool enabled) : Usermod(name, enabled) {}
 
     void setup() override {
+#ifdef USERMOD_AUDIOREACTIVE
+      if (audioSyncEnabled != AUDIOSYNC_NONE) rememberedAudioSyncMode = audioSyncEnabled;
+#endif
       applyRuntimeSettings();
       server.on("/ultimate", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send_P(200, "text/html", WLED_ULTIMATE_PAGE);
       });
       initDone = true;
+    }
+
+    void loop() override {
+      if (!enabled) return;
+      if (millis() - lastMasterApply >= 1000) {
+        lastMasterApply = millis();
+        applyAudioMasters();
+      }
     }
 
     void addToJsonInfo(JsonObject& root) override {
@@ -96,6 +128,10 @@ class WLEDUltimateUsermod : public Usermod {
       ultimate["psramLedBuffer"] = psramLedBuffer;
       ultimate["psramAvailable"] = psramAvailable();
       ultimate["experimentalEffects"] = experimentalEffects;
+#ifdef USERMOD_AUDIOREACTIVE
+      ultimate["audioProcessingActive"] = !disableSoundProcessing;
+      ultimate["audioSyncMode"] = audioSyncEnabled;
+#endif
     }
 
     void readFromJsonState(JsonObject& root) override {
