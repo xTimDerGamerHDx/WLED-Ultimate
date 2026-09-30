@@ -85,6 +85,32 @@ jobs:
         working-directory: source
         run: pio run -e ${{ matrix.env }}
 
+      - name: Create GL-C-618WL full flash image
+        if: matrix.env == 'ultimate_gledopto_gl_c_618wl'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD="source/.pio/build/${{ matrix.env }}"
+          ESPTOOL="$(find "$HOME/.platformio/packages" -path '*/tool-esptoolpy/esptool.py' -print -quit)"
+          BOOT_APP0="$(find "$HOME/.platformio/packages" -path '*/framework-arduinoespressif32/tools/partitions/boot_app0.bin' -print -quit)"
+
+          test -f "$BUILD/bootloader.bin"
+          test -f "$BUILD/partitions.bin"
+          test -f "$BUILD/firmware.bin"
+          test -f "$ESPTOOL"
+          test -f "$BOOT_APP0"
+
+          python "$ESPTOOL" --chip esp32 merge_bin \
+            -o "$BUILD/factory.bin" \
+            0x1000 "$BUILD/bootloader.bin" \
+            0x8000 "$BUILD/partitions.bin" \
+            0xe000 "$BOOT_APP0" \
+            0x10000 "$BUILD/firmware.bin"
+
+          test -s "$BUILD/factory.bin"
+          echo "Created GL-C-618WL factory image:"
+          ls -lh "$BUILD/factory.bin"
+
       - name: Collect binaries
         shell: bash
         run: |
