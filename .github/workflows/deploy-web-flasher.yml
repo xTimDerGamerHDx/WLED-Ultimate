@@ -177,8 +177,8 @@ jobs:
           ref: ${{ matrix.source_ref }}
           path: source
 
-      - name: Install PlatformIO
-        run: python -m pip install --upgrade platformio
+      - name: Install PlatformIO and standalone esptool
+        run: python -m pip install --upgrade platformio esptool==5.2.0
 
       - name: Apply WLED Ultimate configuration
         shell: bash
@@ -208,18 +208,16 @@ jobs:
         run: |
           set -euo pipefail
           BUILD="source/.pio/build/$PROFILE_ENV"
-          ESPTOOL="$(find "$HOME/.platformio/packages" -path '*/tool-esptoolpy/esptool.py' -print -quit)"
           BOOT_APP0="$(find "$HOME/.platformio/packages" -path '*/framework-arduinoespressif32/tools/partitions/boot_app0.bin' -print -quit)"
 
           test -f "$BUILD/bootloader.bin"
           test -f "$BUILD/partitions.bin"
           test -f "$BUILD/firmware.bin"
-          test -f "$ESPTOOL"
           test -f "$BOOT_APP0"
 
           mkdir -p bundle/firmware bundle/manifests bundle/profiles
 
-          python "$ESPTOOL" --chip "$PROFILE_CHIP" merge_bin \
+          python -m esptool --chip "$PROFILE_CHIP" merge_bin \
             -o "bundle/firmware/${PROFILE_SLUG}-factory.bin" \
             "$PROFILE_BOOT_OFFSET" "$BUILD/bootloader.bin" \
             0x8000 "$BUILD/partitions.bin" \
