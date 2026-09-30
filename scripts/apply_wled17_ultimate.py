@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import runpy
 import sys
 
 if len(sys.argv) != 2:
@@ -222,3 +223,4 @@ else:
 u = u.replace("serializeConfig();", "serializeConfigToFS();")
 ultimate.write_text(u, encoding="utf-8")
 print("WLED Ultimate 17dev bridge + live AudioReactive telemetry + UI v2.1 adapted")
+runpy.run_path(str(Path(__file__).resolve().with_name("apply_audio_controls_v21.py")), run_name="__main__")
