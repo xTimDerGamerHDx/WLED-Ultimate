@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import runpy
 import sys
 
 if len(sys.argv) != 2:
@@ -174,3 +175,4 @@ if "new WLEDUltimateUsermod" not in text:
 
 usermods_list.write_text(text, encoding="utf-8")
 print("WLED Ultimate MM control layer + live AudioReactive telemetry + UI v2.1 registered")
+runpy.run_path(str(Path(__file__).resolve().with_name("apply_audio_controls_v21.py")), run_name="__main__")
