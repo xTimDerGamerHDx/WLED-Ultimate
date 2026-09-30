@@ -30,7 +30,7 @@ const $=id=>document.getElementById(id);
 let currentSync=0,loading=false,saveTimer=0;
 function setState(text,cls=''){const e=$('audioSaveState');if(!e)return;e.textContent=text;e.className='audio-save-state '+cls}
 function paintSync(){document.querySelectorAll('#ultimateAudioControlsV21 [data-sync]').forEach(b=>b.classList.toggle('active',Number(b.dataset.sync)===currentSync))}
-function bindRange(id,out){const e=$(id),v=$(out);if(!e||!v)return;e.oninput=()=>{v.textContent=e.value;scheduleSave()};e.onchange=scheduleSave}
+function bindRange(id,out){const e=$(id),v=$(out);if(!e||!v)return;e.oninput=()=>{v.textContent=e.value};e.onchange=scheduleSave}
 function payload(){return new URLSearchParams({gain:$('audioGain').value,squelch:$('audioSquelch').value,input:$('audioInput').value,agc:$('audioAgc').value,fftScale:$('audioFftScale').value,sync:String(currentSync)})}
 async function saveAudio(){if(loading)return;clearTimeout(saveTimer);setState('Speichere…');try{const r=await fetch('/ultimate/api/audio-config',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:payload().toString()});if(!r.ok)throw Error(r.status);const j=await r.json();apply(j);setState('Gespeichert','ok');setTimeout(()=>setState('Live'),900)}catch(e){setState('Fehler','bad')}}
 function scheduleSave(){if(loading)return;clearTimeout(saveTimer);saveTimer=setTimeout(saveAudio,220)}
