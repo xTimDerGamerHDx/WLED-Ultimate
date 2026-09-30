@@ -20,10 +20,13 @@ if not ui_v2_source.exists():
     raise SystemExit(f"missing shared Ultimate UI v2 header {ui_v2_source}")
 
 # UI v2 is shared by MM and 17dev so both channels expose the exact same frontend.
-# It is copied into the active WLED source tree at build time; the original v1 UI
-# remains inside each channel-specific usermod.
+# Copy it into the active WLED source tree and rewrite the legacy navigation links
+# so /ultimate is the new default while /ultimate-v1 remains the fallback.
 ui_v2_target.parent.mkdir(parents=True, exist_ok=True)
-ui_v2_target.write_text(ui_v2_source.read_text(encoding="utf-8"), encoding="utf-8")
+ui_text = ui_v2_source.read_text(encoding="utf-8")
+ui_text = ui_text.replace('href="/ultimate">Ultimate v1', 'href="/ultimate-v1">Ultimate v1')
+ui_text = ui_text.replace('V2 ist zusätzlich installiert. Nichts wird ersetzt.', 'V2 ist die Standard-Ultimate-Oberfläche. Die alte UI bleibt unter /ultimate-v1 erhalten.')
+ui_v2_target.write_text(ui_text, encoding="utf-8")
 
 # Export a minimal stable bridge from the AudioReactive translation unit.
 # The upstream variables are file-static, so the bridge must live in this file.
@@ -71,21 +74,35 @@ if '#include "ultimate_ui_v2.h"' not in u:
         raise SystemExit("unable to locate 17dev UI v2 include marker")
     u = u.replace(marker, marker + '#include "ultimate_ui_v2.h"\n', 1)
 
-if 'server.on("/ultimate-v2"' not in u:
-    marker = '      server.on("/ultimate", HTTP_GET, [](AsyncWebServerRequest *request) {\n'
-    if marker not in u:
+# Make UI v2 the normal Ultimate route, preserve the old page at /ultimate-v1,
+# and keep /ultimate-v2 as a compatibility alias.
+legacy_route = '''      server.on("/ultimate", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send_P(200, "text/html", WLED_ULTIMATE_PAGE);
+      });
+'''
+if 'server.on("/ultimate-v1"' not in u:
+    if legacy_route not in u:
         raise SystemExit("unable to locate 17dev Ultimate v1 route")
-    route = '''      server.on("/ultimate-v2", HTTP_GET, [](AsyncWebServerRequest *request) {
+    routes = '''      server.on("/ultimate", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send_P(200, "text/html", WLED_ULTIMATE_V2_PAGE);
+      });
+      server.on("/ultimate-v1", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send_P(200, "text/html", WLED_ULTIMATE_PAGE);
+      });
+      server.on("/ultimate-v2", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send_P(200, "text/html", WLED_ULTIMATE_V2_PAGE);
       });
 '''
-    u = u.replace(marker, route + marker, 1)
+    u = u.replace(legacy_route, routes, 1)
 
-if 'Ultimate UI v2' not in u:
-    marker = '      p.add(F("/ultimate"));\n'
+# Make JSON info explicitly list both interfaces.
+u = u.replace('createNestedArray("Ultimate UI")', 'createNestedArray("Ultimate UI v1")', 1)
+u = u.replace('p.add(F("/ultimate"));', 'p.add(F("/ultimate-v1"));', 1)
+if 'createNestedArray("Ultimate UI v2")' not in u:
+    marker = '      p.add(F("/ultimate-v1"));\n'
     if marker in u:
         info = '''      JsonArray p2 = user.createNestedArray("Ultimate UI v2");
-      p2.add(F("/ultimate-v2"));
+      p2.add(F("/ultimate"));
 '''
         u = u.replace(marker, marker + info, 1)
 
@@ -141,4 +158,4 @@ else:
 u = u.replace("serializeConfig();", "serializeConfigToFS();")
 
 ultimate.write_text(u, encoding="utf-8")
-print("WLED Ultimate 17dev bridge + UI v2 adapted to current UsermodManager + config APIs")
+print("WLED Ultimate 17dev bridge + default UI v2 adapted to current UsermodManager + config APIs")
