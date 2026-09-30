@@ -4,153 +4,54 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#07100d">
-  <meta name="description" content="WLED Ultimate Web Flasher für den Gledopto GL-C-618WL">
-  <title>WLED Ultimate Web Flasher</title>
+  <meta name="description" content="WLED Ultimate USB Web Flasher für ESP32 und Gledopto GL-C-618WL">
+  <title>WLED Ultimate USB Flasher</title>
   <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
   <style>
     :root {
       color-scheme: dark;
-      --bg: #050807;
-      --panel: rgba(12, 20, 17, 0.92);
-      --panel-2: rgba(15, 29, 23, 0.82);
-      --line: rgba(116, 255, 181, 0.18);
-      --text: #edf7f1;
-      --muted: #98ada2;
-      --accent: #3cff9a;
-      --accent-2: #20d8ff;
-      --warn: #ffc857;
-      --danger: #ff5c72;
-      --ok: #55f991;
-      --shadow: 0 24px 80px rgba(0, 0, 0, 0.48);
-      --esp-tools-button-color: #35ee8b;
-      --esp-tools-button-text-color: #04100a;
-      --esp-tools-button-border-radius: 14px;
+      --bg:#050807;--panel:rgba(12,20,17,.94);--panel2:rgba(15,29,23,.84);
+      --line:rgba(116,255,181,.18);--text:#edf7f1;--muted:#98ada2;
+      --accent:#3cff9a;--accent2:#20d8ff;--warn:#ffc857;--danger:#ff5c72;--ok:#55f991;
+      --shadow:0 24px 80px rgba(0,0,0,.48);
+      --esp-tools-button-color:#35ee8b;--esp-tools-button-text-color:#04100a;--esp-tools-button-border-radius:14px;
     }
-
-    * { box-sizing: border-box; }
-    html { min-height: 100%; background: var(--bg); }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(circle at 18% 0%, rgba(60,255,154,.13), transparent 34rem),
-        radial-gradient(circle at 95% 18%, rgba(32,216,255,.10), transparent 30rem),
-        linear-gradient(180deg, #050907 0%, #050807 70%);
-    }
-
-    a { color: var(--accent); }
-    .shell { width: min(1120px, calc(100% - 28px)); margin: 0 auto; padding: 28px 0 56px; }
-    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
-    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: .02em; }
-    .brand-mark {
-      width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center;
-      background: linear-gradient(145deg, rgba(60,255,154,.24), rgba(32,216,255,.12));
-      border: 1px solid rgba(60,255,154,.25); box-shadow: inset 0 0 18px rgba(60,255,154,.08);
-    }
-    .brand-mark svg { width: 25px; height: 25px; }
-    .pill { padding: 7px 11px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font-size: 12px; background: rgba(255,255,255,.025); }
-
-    .hero {
-      position: relative; overflow: hidden; padding: clamp(24px, 5vw, 52px); border-radius: 28px;
-      border: 1px solid var(--line); background: linear-gradient(145deg, rgba(14,25,20,.95), rgba(7,13,11,.94));
-      box-shadow: var(--shadow);
-    }
-    .hero::after {
-      content: ""; position: absolute; width: 360px; height: 360px; right: -160px; top: -180px;
-      border-radius: 50%; background: rgba(60,255,154,.11); filter: blur(4px); pointer-events: none;
-    }
-    .eyebrow { color: var(--accent); font-size: 13px; text-transform: uppercase; letter-spacing: .16em; font-weight: 800; }
-    h1 { margin: 12px 0 14px; font-size: clamp(34px, 7vw, 68px); line-height: .98; letter-spacing: -.045em; max-width: 820px; }
-    .lead { max-width: 760px; margin: 0; color: #b8cbc1; font-size: clamp(16px, 2.5vw, 20px); line-height: 1.65; }
-
-    .status-grid, .main-grid { display: grid; gap: 16px; }
-    .status-grid { grid-template-columns: repeat(3, 1fr); margin-top: 28px; }
-    .status { display: flex; gap: 11px; align-items: center; min-height: 62px; padding: 14px; border-radius: 16px; background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.06); }
-    .dot { width: 10px; height: 10px; border-radius: 999px; flex: 0 0 auto; background: #69766f; box-shadow: 0 0 0 5px rgba(255,255,255,.025); }
-    .status.ok .dot { background: var(--ok); box-shadow: 0 0 18px rgba(85,249,145,.65); }
-    .status.bad .dot { background: var(--danger); box-shadow: 0 0 18px rgba(255,92,114,.55); }
-    .status strong { display:block; font-size:13px; }
-    .status span { display:block; margin-top:3px; font-size:12px; color:var(--muted); }
-
-    .main-grid { grid-template-columns: minmax(0, 1.45fr) minmax(280px, .75fr); margin-top: 18px; }
-    .card { border: 1px solid var(--line); border-radius: 22px; background: var(--panel); box-shadow: var(--shadow); }
-    .card-body { padding: 24px; }
-    .card h2 { margin: 0 0 8px; font-size: 21px; }
-    .sub { color: var(--muted); margin: 0; line-height: 1.55; }
-
-    .board { margin-top: 20px; padding: 18px; border-radius: 18px; border: 1px solid rgba(60,255,154,.26); background: linear-gradient(140deg, rgba(60,255,154,.08), rgba(32,216,255,.035)); }
-    .board-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-    .board-title { font-size: 18px; font-weight: 800; }
-    .board-code { margin-top: 4px; color: var(--muted); font-size: 13px; }
-    .ready { color: var(--ok); font-size: 12px; font-weight: 800; background: rgba(85,249,145,.09); border: 1px solid rgba(85,249,145,.2); padding: 6px 9px; border-radius: 999px; white-space: nowrap; }
-    .specs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin: 16px 0 0; }
-    .spec { padding: 10px 12px; border-radius: 12px; background: rgba(0,0,0,.18); color: #bad0c4; font-size: 12px; }
-
-    .warning { margin-top: 18px; padding: 15px 16px; border-radius: 15px; color: #ffe7ac; background: rgba(255,200,87,.07); border: 1px solid rgba(255,200,87,.24); font-size: 13px; line-height: 1.55; }
-    .warning strong { color: var(--warn); }
-
-    .installer { margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.06); }
-    .install-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-    esp-web-install-button { display: inline-block; }
-    .flash-button {
-      appearance: none; border: 0; cursor: pointer; padding: 14px 20px; border-radius: 14px;
-      font: inherit; font-weight: 900; color: #04100a; background: linear-gradient(135deg, var(--accent), #7affbd);
-      box-shadow: 0 10px 30px rgba(60,255,154,.18); transition: transform .15s ease, filter .15s ease;
-    }
-    .flash-button:hover { transform: translateY(-1px); filter: brightness(1.05); }
-    .flash-button:active { transform: translateY(0); }
-    .helper { font-size: 12px; color: var(--muted); }
-
-    .side-list { margin: 18px 0 0; padding: 0; list-style: none; display: grid; gap: 11px; counter-reset: steps; }
-    .side-list li { position: relative; padding: 13px 13px 13px 46px; border-radius: 14px; background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.05); color: #b9cdc2; font-size: 13px; line-height: 1.5; }
-    .side-list li::before { counter-increment: steps; content: counter(steps); position:absolute; left:13px; top:13px; width:24px; height:24px; border-radius:8px; display:grid; place-items:center; color:#06100b; background:var(--accent); font-weight:900; font-size:12px; }
-
-    .meta { margin-top: 16px; display: grid; gap: 9px; }
-    .meta-row { display:flex; justify-content:space-between; gap:14px; padding: 10px 0; border-bottom:1px solid rgba(255,255,255,.055); font-size:12px; }
-    .meta-row:last-child { border-bottom:0; }
-    .meta-row span:first-child { color:var(--muted); }
-    .meta-row span:last-child { color:#d8e6de; text-align:right; overflow-wrap:anywhere; }
-
-    .future { margin-top: 18px; padding: 18px 20px; border-radius: 18px; border: 1px dashed rgba(255,255,255,.10); color: var(--muted); background: rgba(255,255,255,.018); }
-    .future strong { color: #d7e4dd; }
-    footer { margin-top: 22px; text-align: center; color: #718078; font-size: 12px; line-height: 1.7; }
-    .unsupported-box { color: #ffd3da; background: rgba(255,92,114,.08); border:1px solid rgba(255,92,114,.25); border-radius:12px; padding:12px 14px; display:inline-block; }
-
-    @media (max-width: 820px) {
-      .status-grid, .main-grid { grid-template-columns: 1fr; }
-      .status-grid { gap: 9px; }
-      .topbar { align-items: flex-start; }
-      .pill { display:none; }
-    }
-    @media (max-width: 520px) {
-      .shell { width:min(100% - 18px, 1120px); padding-top:16px; }
-      .hero, .card { border-radius:20px; }
-      .hero, .card-body { padding:18px; }
-      .specs { grid-template-columns:1fr; }
-      .board-head { flex-direction:column; }
-      h1 { font-size:38px; }
-    }
+    *{box-sizing:border-box} html{min-height:100%;background:var(--bg)}
+    body{margin:0;min-height:100vh;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);background:radial-gradient(circle at 18% 0%,rgba(60,255,154,.13),transparent 34rem),radial-gradient(circle at 95% 18%,rgba(32,216,255,.10),transparent 30rem),linear-gradient(180deg,#050907 0%,#050807 70%)}
+    a{color:var(--accent)} button,input,select{font:inherit}.shell{width:min(1180px,calc(100% - 28px));margin:0 auto;padding:28px 0 56px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}.brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.02em}
+    .brand-mark{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(60,255,154,.24),rgba(32,216,255,.12));border:1px solid rgba(60,255,154,.25);box-shadow:inset 0 0 18px rgba(60,255,154,.08)}
+    .brand-mark svg{width:25px;height:25px}.pill{padding:7px 11px;border-radius:999px;border:1px solid var(--line);color:var(--muted);font-size:12px;background:rgba(255,255,255,.025)}
+    .hero{position:relative;overflow:hidden;padding:clamp(24px,5vw,52px);border-radius:28px;border:1px solid var(--line);background:linear-gradient(145deg,rgba(14,25,20,.95),rgba(7,13,11,.94));box-shadow:var(--shadow)}
+    .hero::after{content:"";position:absolute;width:360px;height:360px;right:-160px;top:-180px;border-radius:50%;background:rgba(60,255,154,.11);filter:blur(4px);pointer-events:none}
+    .eyebrow{color:var(--accent);font-size:13px;text-transform:uppercase;letter-spacing:.16em;font-weight:800}h1{margin:12px 0 14px;font-size:clamp(34px,7vw,68px);line-height:.98;letter-spacing:-.045em;max-width:900px}.lead{max-width:820px;margin:0;color:#b8cbc1;font-size:clamp(16px,2.5vw,20px);line-height:1.65}
+    .status-grid,.grid{display:grid;gap:16px}.status-grid{grid-template-columns:repeat(3,1fr);margin-top:28px}.status{display:flex;gap:11px;align-items:center;min-height:62px;padding:14px;border-radius:16px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06)}
+    .dot{width:10px;height:10px;border-radius:999px;flex:0 0 auto;background:#69766f;box-shadow:0 0 0 5px rgba(255,255,255,.025)}.status.ok .dot{background:var(--ok);box-shadow:0 0 18px rgba(85,249,145,.65)}.status.bad .dot{background:var(--danger);box-shadow:0 0 18px rgba(255,92,114,.55)}.status strong{display:block;font-size:13px}.status span{display:block;margin-top:3px;font-size:12px;color:var(--muted)}
+    .grid{grid-template-columns:1fr 1fr;margin-top:18px}.card{border:1px solid var(--line);border-radius:22px;background:var(--panel);box-shadow:var(--shadow)}.card-body{padding:24px}.card h2{margin:0 0 8px;font-size:21px}.sub{color:var(--muted);margin:0;line-height:1.55}
+    .board{margin-top:20px;padding:18px;border-radius:18px;border:1px solid rgba(60,255,154,.26);background:linear-gradient(140deg,rgba(60,255,154,.08),rgba(32,216,255,.035))}.board-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.board-title{font-size:18px;font-weight:800}.board-code{margin-top:4px;color:var(--muted);font-size:13px}.ready{color:var(--ok);font-size:12px;font-weight:800;background:rgba(85,249,145,.09);border:1px solid rgba(85,249,145,.2);padding:6px 9px;border-radius:999px;white-space:nowrap}.specs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:16px 0 0}.spec{padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.18);color:#bad0c4;font-size:12px}
+    .warning{margin-top:18px;padding:15px 16px;border-radius:15px;color:#ffe7ac;background:rgba(255,200,87,.07);border:1px solid rgba(255,200,87,.24);font-size:13px;line-height:1.55}.warning strong{color:var(--warn)}
+    .installer{margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,.06)}.install-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}esp-web-install-button{display:inline-block}
+    .btn{appearance:none;border:0;cursor:pointer;padding:13px 18px;border-radius:14px;font-weight:900;transition:transform .15s ease,filter .15s ease}.btn:hover{transform:translateY(-1px);filter:brightness(1.05)}.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}.primary{color:#04100a;background:linear-gradient(135deg,var(--accent),#7affbd);box-shadow:0 10px 30px rgba(60,255,154,.18)}.secondary{color:#dff8ea;background:rgba(60,255,154,.09);border:1px solid rgba(60,255,154,.24)}.danger{color:#ffe4e8;background:rgba(255,92,114,.08);border:1px solid rgba(255,92,114,.23)}
+    .helper{font-size:12px;color:var(--muted)}.unsupported-box{color:#ffd3da;background:rgba(255,92,114,.08);border:1px solid rgba(255,92,114,.25);border-radius:12px;padding:12px 14px;display:inline-block}
+    .usb-card{margin-top:18px}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}.field{display:grid;gap:7px}.field.full{grid-column:1/-1}.field label{font-size:12px;color:#b8cbc1;font-weight:700}.control{width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:#09110e;color:var(--text);padding:12px 13px;outline:none}.control:focus{border-color:rgba(60,255,154,.5);box-shadow:0 0 0 3px rgba(60,255,154,.08)}
+    .file-box{position:relative;padding:18px;border:1px dashed rgba(60,255,154,.30);border-radius:16px;background:rgba(60,255,154,.035)}.file-box input{width:100%;color:#cfe1d7}.file-meta{margin-top:8px;color:var(--muted);font-size:12px}.toggle{display:flex;align-items:center;gap:9px;font-size:13px;color:#c9d9d0}.toggle input{width:18px;height:18px;accent-color:var(--accent)}
+    .action-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.progress-wrap{margin-top:16px}.progress-head{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px;margin-bottom:7px}.progress{height:10px;border-radius:999px;background:#07100c;border:1px solid rgba(255,255,255,.06);overflow:hidden}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .18s ease}.terminal{margin-top:14px;min-height:170px;max-height:290px;overflow:auto;padding:14px;border-radius:14px;background:#030604;border:1px solid rgba(255,255,255,.07);font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#b9f6d1;white-space:pre-wrap;word-break:break-word}.chip-badge{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:8px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.08);font-size:12px;color:var(--muted)}
+    .steps{margin:18px 0 0;padding:0;list-style:none;display:grid;gap:10px;counter-reset:steps}.steps li{position:relative;padding:13px 13px 13px 46px;border-radius:14px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);color:#b9cdc2;font-size:13px;line-height:1.5}.steps li::before{counter-increment:steps;content:counter(steps);position:absolute;left:13px;top:13px;width:24px;height:24px;border-radius:8px;display:grid;place-items:center;color:#06100b;background:var(--accent);font-weight:900;font-size:12px}
+    footer{margin-top:22px;text-align:center;color:#718078;font-size:12px;line-height:1.7}
+    @media(max-width:900px){.status-grid,.grid{grid-template-columns:1fr}.status-grid{gap:9px}}@media(max-width:600px){.shell{width:min(100% - 18px,1180px);padding-top:16px}.hero,.card{border-radius:20px}.hero,.card-body{padding:18px}.specs,.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.board-head{flex-direction:column}.pill{display:none}h1{font-size:38px}}
   </style>
 </head>
 <body>
   <main class="shell">
     <div class="topbar">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M13.3 2 5 13h6l-.4 9L19 10h-6l.3-8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-        </div>
-        <div>WLED Ultimate</div>
-      </div>
+      <div class="brand"><div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M13.3 2 5 13h6l-.4 9L19 10h-6l.3-8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div><div>WLED Ultimate</div></div>
       <div class="pill">USB Web Flasher · ESP32</div>
     </div>
 
     <section class="hero">
-      <div class="eyebrow">WLED Ultimate Installer</div>
-      <h1>Flashen. Verbinden. Leuchten. ⚡</h1>
-      <p class="lead">Installiere WLED Ultimate direkt über USB im Browser. Der erste GL-C-618WL-Flash schreibt die neue größere Partitionstabelle und beseitigt damit den OTA-Fehler <strong>Not Enough Space</strong>.</p>
-
+      <div class="eyebrow">WLED Ultimate USB Installer</div>
+      <h1>Direkt per USB flashen. ⚡</h1>
+      <p class="lead">Ein-Klick-Installation für den GL-C-618WL plus erweiterter USB-Flasher für lokale <code>.bin</code>-Dateien. Alles läuft direkt im Browser über Web Serial.</p>
       <div class="status-grid">
         <div class="status" id="secureStatus"><div class="dot"></div><div><strong>HTTPS</strong><span id="secureText">wird geprüft …</span></div></div>
         <div class="status" id="serialStatus"><div class="dot"></div><div><strong>Web Serial</strong><span id="serialText">wird geprüft …</span></div></div>
@@ -158,94 +59,176 @@
       </div>
     </section>
 
-    <div class="main-grid">
+    <div class="grid">
       <section class="card">
         <div class="card-body">
-          <h2>Controller auswählen</h2>
-          <p class="sub">Aktuell ist der dedizierte Gledopto-Build freigeschaltet. Weitere Ultimate-Boards können später dieselbe Oberfläche nutzen.</p>
-
+          <h2>1-Klick GL-C-618WL Installer</h2>
+          <p class="sub">Empfohlener Weg für den ersten Wechsel auf WLED Ultimate. Die Seite verwendet das automatisch gebaute Factory-Image.</p>
           <div class="board">
-            <div class="board-head">
-              <div>
-                <div class="board-title">Gledopto Elite 4D-EXMU</div>
-                <div class="board-code">Model GL-C-618WL · WLED Ultimate-MM</div>
-              </div>
-              <div class="ready">● READY</div>
-            </div>
-            <div class="specs">
-              <div class="spec">ESP32 · 4 MB Flash</div>
-              <div class="spec">LAN8720 Ethernet</div>
-              <div class="spec">PDM Mikrofon integriert</div>
-              <div class="spec">4 × LED-Ausgang</div>
-            </div>
+            <div class="board-head"><div><div class="board-title">Gledopto Elite 4D-EXMU</div><div class="board-code">GL-C-618WL · WLED Ultimate-MM</div></div><div class="ready">● READY</div></div>
+            <div class="specs"><div class="spec">ESP32 · 4 MB Flash</div><div class="spec">LAN8720 Ethernet</div><div class="spec">PDM Mikrofon</div><div class="spec">Factory Offset 0x0</div></div>
           </div>
-
-          <div class="warning"><strong>Achtung: Full Flash.</strong> Beim erstmaligen Wechsel auf WLED Ultimate wird der Flash gelöscht und die Partitionstabelle neu geschrieben. Sichere vorher Presets und Konfiguration. Verwende diese Factory-Installation nicht als normales OTA-Update.</div>
-
+          <div class="warning"><strong>Achtung: Full Flash.</strong> Sichere vorher deine WLED-Konfiguration und Presets. Diese Installation schreibt Bootloader, Partitionstabelle und Firmware neu.</div>
           <div class="installer">
             <div class="install-row">
               <esp-web-install-button manifest="./manifest-gledopto.json">
-                <button class="flash-button" slot="activate">GL-C-618WL installieren</button>
-                <span class="unsupported-box" slot="unsupported">Dieser Browser unterstützt Web Serial nicht. Nutze Chrome oder Edge auf einem Desktop-System.</span>
-                <span class="unsupported-box" slot="not-allowed">Web Serial benötigt eine sichere HTTPS-Verbindung.</span>
+                <button class="btn primary" slot="activate">GL-C-618WL per USB installieren</button>
+                <span class="unsupported-box" slot="unsupported">Dieser Browser unterstützt Web Serial nicht. Nutze Chrome oder Edge.</span>
+                <span class="unsupported-box" slot="not-allowed">Web Serial benötigt HTTPS.</span>
               </esp-web-install-button>
-              <div class="helper">USB verbinden → Button drücken → seriellen Port auswählen</div>
+              <span class="helper">USB/UART verbinden → Port wählen → Installieren</span>
             </div>
           </div>
-
-          <div class="future"><strong>Geplant:</strong> ESP32 4 MB, ESP32 Ethernet, ESP32-S3 8 MB PSRAM und ESP32-S3 16 MB/HUB75 als weitere auswählbare Profile.</div>
         </div>
       </section>
 
-      <aside class="card">
+      <section class="card">
         <div class="card-body">
-          <h2>So funktioniert es</h2>
-          <ol class="side-list">
-            <li>WLED-Konfiguration und Presets sichern.</li>
-            <li>GL-C-618WL per USB mit dem Computer verbinden.</li>
-            <li><strong>GL-C-618WL installieren</strong> drücken und den richtigen COM-Port wählen.</li>
-            <li>Installation vollständig durchlaufen lassen und den Controller neu starten.</li>
-            <li>Danach zukünftige Updates wieder normal per WLED OTA mit der <code>firmware.bin</code> installieren.</li>
+          <h2>Kurzanleitung</h2>
+          <p class="sub">Für den GL-C-618WL kann je nach Hardware ein USB-UART-Adapter nötig sein.</p>
+          <ol class="steps">
+            <li>Controller bzw. USB-UART-Adapter mit dem PC verbinden.</li>
+            <li>Chrome oder Edge öffnen und den seriellen Port auswählen.</li>
+            <li>Für den ersten Ultimate-Flash den 1-Klick-Installer oder im erweiterten Flasher <strong>Factory / 0x0</strong> verwenden.</li>
+            <li>Nach erfolgreichem Flash startet der ESP32 neu. Spätere Updates können normal per WLED OTA erfolgen.</li>
           </ol>
-
-          <div class="meta">
-            <div class="meta-row"><span>Build</span><span id="buildVersion">wird geladen …</span></div>
-            <div class="meta-row"><span>Commit</span><span id="buildCommit">—</span></div>
-            <div class="meta-row"><span>Firmware</span><span id="buildSize">—</span></div>
-            <div class="meta-row"><span>Flash-Modus</span><span>DIO · 40 MHz · 4 MB</span></div>
-          </div>
+          <div class="warning"><strong>Boot-Modus:</strong> Falls keine Verbindung möglich ist, muss der ESP32 eventuell beim Reset mit GPIO0/BOOT auf GND in den Download-Modus gebracht werden.</div>
         </div>
-      </aside>
+      </section>
     </div>
 
-    <footer>
-      WLED Ultimate ist ein Community-Projekt auf Basis von WLED und MoonModules/WLED-MM.<br>
-      Flashen geschieht auf eigene Verantwortung. Spannungen und LED-Verkabelung vor dem Einschalten prüfen.
-    </footer>
+    <section class="card usb-card">
+      <div class="card-body">
+        <div class="eyebrow">Advanced</div>
+        <h2>USB-Flasher für lokale BIN-Dateien</h2>
+        <p class="sub">Hier kannst du eine eigene Binärdatei direkt über USB/Web Serial flashen. Für den GL-C-618WL sind DIO, 40 MHz und 4 MB voreingestellt.</p>
+
+        <div class="form-grid">
+          <div class="field full">
+            <label>Firmware-Datei</label>
+            <div class="file-box">
+              <input id="firmwareFile" type="file" accept=".bin,application/octet-stream">
+              <div class="file-meta" id="fileMeta">Noch keine lokale BIN ausgewählt.</div>
+              <div class="action-row"><button class="btn secondary" id="useFactoryBtn" type="button">Aktuelle GL-C Factory von dieser Seite verwenden</button></div>
+            </div>
+          </div>
+
+          <div class="field"><label>Flash-Offset</label><select id="offsetPreset" class="control"><option value="0x0">Factory / merged image — 0x0</option><option value="0x10000">WLED firmware.bin — 0x10000</option><option value="0x1000">Bootloader — 0x1000</option><option value="0x8000">Partition Table — 0x8000</option><option value="0xe000">boot_app0 — 0xE000</option><option value="custom">Benutzerdefiniert</option></select></div>
+          <div class="field"><label>Offset (Hex)</label><input id="offsetInput" class="control" value="0x0" spellcheck="false"></div>
+          <div class="field"><label>Baudrate</label><select id="baudrate" class="control"><option>115200</option><option>230400</option><option selected>460800</option><option>921600</option></select></div>
+          <div class="field"><label>Flash-Größe</label><select id="flashSize" class="control"><option>2MB</option><option selected>4MB</option><option>8MB</option><option>16MB</option></select></div>
+          <div class="field"><label>Flash Mode</label><select id="flashMode" class="control"><option selected>dio</option><option>qio</option><option>dout</option><option>qout</option></select></div>
+          <div class="field"><label>Flash Frequency</label><select id="flashFreq" class="control"><option selected>40m</option><option>80m</option><option>26m</option><option>20m</option></select></div>
+          <div class="field full"><label class="toggle"><input id="eraseAll" type="checkbox"> Gesamten Flash vor dem Schreiben löschen</label></div>
+        </div>
+
+        <div class="action-row">
+          <button id="connectBtn" class="btn secondary" type="button">USB verbinden & Chip erkennen</button>
+          <button id="flashBtn" class="btn primary" type="button" disabled>BIN flashen</button>
+          <button id="eraseBtn" class="btn danger" type="button" disabled>Flash komplett löschen</button>
+          <button id="disconnectBtn" class="btn secondary" type="button" disabled>Trennen</button>
+        </div>
+
+        <div class="chip-badge">Chip: <strong id="chipName">nicht verbunden</strong></div>
+        <div class="progress-wrap"><div class="progress-head"><span id="progressText">Bereit</span><span id="progressPct">0%</span></div><div class="progress"><div class="bar" id="progressBar"></div></div></div>
+        <div class="terminal" id="terminal">WLED Ultimate USB Flasher bereit.\n</div>
+        <div class="warning"><strong>Fortgeschrittene Funktion.</strong> Ein falscher Offset oder eine falsche BIN kann dazu führen, dass das Gerät nicht mehr startet. Für die automatisch erzeugte GL-C Factory immer <strong>0x0</strong> verwenden; für die normale WLED <strong>firmware.bin</strong> dieses Targets <strong>0x10000</strong>.</div>
+      </div>
+    </section>
+
+    <footer>WLED Ultimate · USB Flashing via ESP Web Tools und Espressif esptool-js · Firmware wird lokal im Browser verarbeitet.</footer>
   </main>
 
   <script>
-    const setStatus = (id, textId, ok, text) => {
-      const el = document.getElementById(id);
-      el.classList.remove('ok', 'bad');
-      el.classList.add(ok ? 'ok' : 'bad');
-      document.getElementById(textId).textContent = text;
-    };
+    const secureStatus=document.getElementById('secureStatus'),secureText=document.getElementById('secureText');
+    const serialStatus=document.getElementById('serialStatus'),serialText=document.getElementById('serialText');
+    const secure=window.isSecureContext || location.hostname==='localhost';
+    secureStatus.classList.add(secure?'ok':'bad'); secureText.textContent=secure?'sichere Verbindung aktiv':'HTTPS erforderlich';
+    const serial='serial' in navigator; serialStatus.classList.add(serial?'ok':'bad'); serialText.textContent=serial?'Browser unterstützt Web Serial':'Web Serial nicht verfügbar';
+  </script>
 
-    setStatus('secureStatus', 'secureText', window.isSecureContext, window.isSecureContext ? 'sichere Verbindung' : 'HTTPS erforderlich');
-    const hasSerial = 'serial' in navigator;
-    setStatus('serialStatus', 'serialText', hasSerial, hasSerial ? 'Browser unterstützt USB' : 'Chrome/Edge Desktop verwenden');
+  <script type="module">
+    import { ESPLoader, Transport } from 'https://unpkg.com/esptool-js@0.6.1/bundle.js';
 
-    fetch('./build-info.json', { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(info => {
-        document.getElementById('buildVersion').textContent = info.version || 'WLED Ultimate';
-        document.getElementById('buildCommit').textContent = info.commit || '—';
-        document.getElementById('buildSize').textContent = info.factorySize ? `${(info.factorySize / 1024 / 1024).toFixed(2)} MB` : '—';
-      })
-      .catch(() => {
-        document.getElementById('buildVersion').textContent = 'WLED Ultimate';
-      });
+    const $=id=>document.getElementById(id);
+    const fileInput=$('firmwareFile'),fileMeta=$('fileMeta'),useFactoryBtn=$('useFactoryBtn');
+    const offsetPreset=$('offsetPreset'),offsetInput=$('offsetInput'),baudrate=$('baudrate'),flashSize=$('flashSize'),flashMode=$('flashMode'),flashFreq=$('flashFreq'),eraseAll=$('eraseAll');
+    const connectBtn=$('connectBtn'),flashBtn=$('flashBtn'),eraseBtn=$('eraseBtn'),disconnectBtn=$('disconnectBtn');
+    const chipName=$('chipName'),progressText=$('progressText'),progressPct=$('progressPct'),progressBar=$('progressBar'),term=$('terminal');
+
+    let transport=null,loader=null,firmwareData=null,firmwareName='';
+
+    function log(msg){term.textContent+=String(msg)+'\n';term.scrollTop=term.scrollHeight}
+    function progress(p,text){const v=Math.max(0,Math.min(100,Number(p)||0));progressBar.style.width=v+'%';progressPct.textContent=v.toFixed(0)+'%';if(text)progressText.textContent=text}
+    function busy(on){connectBtn.disabled=on || !!loader;flashBtn.disabled=on || !loader || !firmwareData;eraseBtn.disabled=on || !loader;disconnectBtn.disabled=on || !transport;useFactoryBtn.disabled=on;fileInput.disabled=on}
+    function updateFlashButton(){flashBtn.disabled=!loader || !firmwareData}
+
+    fileInput.addEventListener('change',async()=>{
+      const f=fileInput.files?.[0];
+      if(!f){firmwareData=null;firmwareName='';fileMeta.textContent='Noch keine lokale BIN ausgewählt.';updateFlashButton();return}
+      firmwareData=new Uint8Array(await f.arrayBuffer()); firmwareName=f.name;
+      fileMeta.textContent=`${f.name} · ${(f.size/1024).toFixed(1)} KB`;
+      log(`Lokale Firmware geladen: ${f.name} (${f.size} Bytes)`); updateFlashButton();
+    });
+
+    useFactoryBtn.addEventListener('click',async()=>{
+      try{busy(true);progress(5,'Factory-Image wird geladen …');
+        const r=await fetch('./firmware/WLED-Ultimate-GL-C-618WL-factory.bin',{cache:'no-store'}); if(!r.ok)throw new Error(`HTTP ${r.status}`);
+        firmwareData=new Uint8Array(await r.arrayBuffer()); firmwareName='WLED-Ultimate-GL-C-618WL-factory.bin';
+        fileMeta.textContent=`${firmwareName} · ${(firmwareData.byteLength/1024).toFixed(1)} KB · von dieser Seite`;
+        offsetPreset.value='0x0';offsetInput.value='0x0';log(`Factory-Image geladen: ${firmwareData.byteLength} Bytes`);progress(0,'Factory bereit');
+      }catch(e){log('FEHLER beim Laden der Factory: '+e.message);progress(0,'Fehler');}finally{busy(false);updateFlashButton()}
+    });
+
+    offsetPreset.addEventListener('change',()=>{if(offsetPreset.value!=='custom')offsetInput.value=offsetPreset.value});
+    offsetInput.addEventListener('input',()=>{offsetPreset.value='custom'});
+
+    const terminal={clean(){},writeLine(data){log(data)},write(data){term.textContent+=String(data);term.scrollTop=term.scrollHeight}};
+
+    connectBtn.addEventListener('click',async()=>{
+      if(!('serial' in navigator)){log('Web Serial ist in diesem Browser nicht verfügbar.');return}
+      try{busy(true);progress(0,'USB-Port auswählen …');
+        const port=await navigator.serial.requestPort(); transport=new Transport(port,true);
+        loader=new ESPLoader({transport,baudrate:Number(baudrate.value),terminal,debugLogging:false});
+        log('Verbinde mit Bootloader …'); const detected=await loader.main(); chipName.textContent=detected || 'ESP erkannt';
+        log('Chip erkannt: '+chipName.textContent);progress(0,'Verbunden');
+      }catch(e){log('VERBINDUNGSFEHLER: '+(e?.message||e));loader=null;transport=null;chipName.textContent='nicht verbunden';progress(0,'Verbindung fehlgeschlagen')}
+      finally{busy(false);updateFlashButton()}
+    });
+
+    flashBtn.addEventListener('click',async()=>{
+      if(!loader||!firmwareData)return;
+      let address;
+      try{address=Number.parseInt(offsetInput.value.trim(),0);if(!Number.isFinite(address)||address<0)throw new Error('Ungültiger Offset');}
+      catch(e){log('FEHLER: Bitte gültigen Hex-Offset eingeben, z. B. 0x0 oder 0x10000.');return}
+      if(address===0 && !confirm(`Full Flash bei 0x0 starten?\n\nDatei: ${firmwareName}\nGröße: ${firmwareData.byteLength} Bytes\n\nDies kann die vorhandene Installation überschreiben.`))return;
+      try{busy(true);progress(0,'Flash wird vorbereitet …');log(`Flash: ${firmwareName} -> 0x${address.toString(16).toUpperCase()}`);
+        await loader.writeFlash({
+          fileArray:[{data:firmwareData,address}],
+          flashMode:flashMode.value,
+          flashFreq:flashFreq.value,
+          flashSize:flashSize.value,
+          eraseAll:eraseAll.checked,
+          compress:true,
+          reportProgress:(i,written,total)=>{const pct=total?written/total*100:0;progress(pct,`Schreibe ${firmwareName}`)}
+        });
+        progress(100,'Flash erfolgreich');log('FLASH ERFOLGREICH ✅');
+        try{await loader.after('hard_reset');log('ESP wurde neu gestartet.')}catch(e){log('Reset-Hinweis: '+(e?.message||e))}
+      }catch(e){log('FLASH-FEHLER: '+(e?.message||e));progress(0,'Flash fehlgeschlagen')}
+      finally{busy(false);updateFlashButton()}
+    });
+
+    eraseBtn.addEventListener('click',async()=>{
+      if(!loader)return;if(!confirm('Gesamten Flash wirklich löschen? Diese Aktion entfernt Firmware und Einstellungen.'))return;
+      try{busy(true);progress(0,'Flash wird gelöscht …');log('Erase Flash gestartet …');await loader.eraseFlash();progress(100,'Flash gelöscht');log('Flash vollständig gelöscht ✅')}
+      catch(e){log('ERASE-FEHLER: '+(e?.message||e));progress(0,'Löschen fehlgeschlagen')}
+      finally{busy(false);updateFlashButton()}
+    });
+
+    disconnectBtn.addEventListener('click',async()=>{
+      try{busy(true);if(transport)await transport.disconnect();log('USB-Verbindung getrennt.')}catch(e){log('Trennen: '+(e?.message||e))}
+      finally{transport=null;loader=null;chipName.textContent='nicht verbunden';progress(0,'Bereit');busy(false);updateFlashButton()}
+    });
   </script>
 </body>
 </html>
