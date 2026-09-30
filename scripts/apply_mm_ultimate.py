@@ -27,13 +27,19 @@ if '#include "ultimate_audio_fx.h"' not in uh:
         raise SystemExit("unable to locate Ultimate wled.h include")
     uh = uh.replace(marker, marker + '#include "ultimate_audio_fx.h"\n', 1)
 
-# Ultimate UI v2 is an additional page. The existing /ultimate page remains
-# untouched as a fallback and the stock WLED UI continues to live at /.
+# Wire the shared modern frontend into every MM build.
 if '#include "ultimate_ui_v2.h"' not in uh:
     marker = '#include "wled.h"\n'
     if marker not in uh:
         raise SystemExit("unable to locate Ultimate UI v2 include marker")
     uh = uh.replace(marker, marker + '#include "ultimate_ui_v2.h"\n', 1)
+
+# The UI v2 header is shared with 17dev. At build time make its legacy links point
+# to the preserved v1 route rather than back to the new default /ultimate page.
+ui = ui_v2_header.read_text(encoding="utf-8")
+ui = ui.replace('href="/ultimate">Ultimate v1', 'href="/ultimate-v1">Ultimate v1')
+ui = ui.replace('V2 ist zusätzlich installiert. Nichts wird ersetzt.', 'V2 ist die Standard-Ultimate-Oberfläche. Die alte UI bleibt unter /ultimate-v1 erhalten.')
+ui_v2_header.write_text(ui, encoding="utf-8")
 
 master_hook = '''#ifdef USERMOD_AUDIOREACTIVE
       ultimateParticleFxMaster = particleFx;
@@ -53,21 +59,35 @@ if "registerWLEDUltimateAudioFx();" not in uh:
     replacement = "      applyRuntimeSettings();\n#ifdef USERMOD_AUDIOREACTIVE\n      registerWLEDUltimateAudioFx();\n#endif\n      server.on(\"/ultimate\""
     uh = uh.replace(marker, replacement, 1)
 
-if 'server.on("/ultimate-v2"' not in uh:
-    marker = '      server.on("/ultimate", HTTP_GET, [](AsyncWebServerRequest *request) {\n'
-    if marker not in uh:
+# Make UI v2 the normal Ultimate page, preserve v1 as a fallback, and retain the
+# old /ultimate-v2 URL as a compatibility alias for already bookmarked devices.
+legacy_route = '''      server.on("/ultimate", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send_P(200, "text/html", WLED_ULTIMATE_PAGE);
+      });
+'''
+if 'server.on("/ultimate-v1"' not in uh:
+    if legacy_route not in uh:
         raise SystemExit("unable to locate Ultimate v1 route")
-    route = '''      server.on("/ultimate-v2", HTTP_GET, [](AsyncWebServerRequest *request) {
+    routes = '''      server.on("/ultimate", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send_P(200, "text/html", WLED_ULTIMATE_V2_PAGE);
+      });
+      server.on("/ultimate-v1", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send_P(200, "text/html", WLED_ULTIMATE_PAGE);
+      });
+      server.on("/ultimate-v2", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send_P(200, "text/html", WLED_ULTIMATE_V2_PAGE);
       });
 '''
-    uh = uh.replace(marker, route + marker, 1)
+    uh = uh.replace(legacy_route, routes, 1)
 
-if 'Ultimate UI v2' not in uh:
-    marker = '      page.add(F("/ultimate"));\n'
+# Make the JSON info page clearly advertise both interfaces.
+uh = uh.replace('createNestedArray("Ultimate UI")', 'createNestedArray("Ultimate UI v1")', 1)
+uh = uh.replace('page.add(F("/ultimate"));', 'page.add(F("/ultimate-v1"));', 1)
+if 'createNestedArray("Ultimate UI v2")' not in uh:
+    marker = '      page.add(F("/ultimate-v1"));\n'
     if marker in uh:
         info = '''      JsonArray pageV2 = user.createNestedArray("Ultimate UI v2");
-      pageV2.add(F("/ultimate-v2"));
+      pageV2.add(F("/ultimate"));
 '''
         uh = uh.replace(marker, marker + info, 1)
 
@@ -94,4 +114,4 @@ if "new WLEDUltimateUsermod" not in text:
     text = text[:end] + register_block + text[end:]
 
 usermods_list.write_text(text, encoding="utf-8")
-print("WLED Ultimate MM control layer + Audio Particle FX + UI v2 registered")
+print("WLED Ultimate MM control layer + Audio Particle FX + default UI v2 registered")
