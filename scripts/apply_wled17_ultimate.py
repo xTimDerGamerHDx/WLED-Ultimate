@@ -6,13 +6,24 @@ if len(sys.argv) != 2:
     raise SystemExit("usage: apply_wled17_ultimate.py <wled-source-dir>")
 
 source = Path(sys.argv[1])
+repo_root = Path(__file__).resolve().parents[1]
 audio = source / "usermods" / "audioreactive" / "audio_reactive.cpp"
 ultimate = source / "usermods" / "WLED_Ultimate" / "usermod_wled_ultimate.cpp"
+ui_v2_source = repo_root / "overlay" / "mm" / "usermods" / "WLED_Ultimate" / "ultimate_ui_v2.h"
+ui_v2_target = source / "usermods" / "WLED_Ultimate" / "ultimate_ui_v2.h"
 
 if not audio.exists():
     raise SystemExit(f"missing {audio}")
 if not ultimate.exists():
     raise SystemExit(f"missing {ultimate}")
+if not ui_v2_source.exists():
+    raise SystemExit(f"missing shared Ultimate UI v2 header {ui_v2_source}")
+
+# UI v2 is shared by MM and 17dev so both channels expose the exact same frontend.
+# It is copied into the active WLED source tree at build time; the original v1 UI
+# remains inside each channel-specific usermod.
+ui_v2_target.parent.mkdir(parents=True, exist_ok=True)
+ui_v2_target.write_text(ui_v2_source.read_text(encoding="utf-8"), encoding="utf-8")
 
 # Export a minimal stable bridge from the AudioReactive translation unit.
 # The upstream variables are file-static, so the bridge must live in this file.
@@ -53,6 +64,30 @@ if "wledUltimate17SetAudioProcessing" not in u:
     if marker not in u:
         raise SystemExit("unable to locate 17dev Ultimate include marker")
     u = u.replace(marker, decl, 1)
+
+if '#include "ultimate_ui_v2.h"' not in u:
+    marker = '#include "wled.h"\n'
+    if marker not in u:
+        raise SystemExit("unable to locate 17dev UI v2 include marker")
+    u = u.replace(marker, marker + '#include "ultimate_ui_v2.h"\n', 1)
+
+if 'server.on("/ultimate-v2"' not in u:
+    marker = '      server.on("/ultimate", HTTP_GET, [](AsyncWebServerRequest *request) {\n'
+    if marker not in u:
+        raise SystemExit("unable to locate 17dev Ultimate v1 route")
+    route = '''      server.on("/ultimate-v2", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send_P(200, "text/html", WLED_ULTIMATE_V2_PAGE);
+      });
+'''
+    u = u.replace(marker, route + marker, 1)
+
+if 'Ultimate UI v2' not in u:
+    marker = '      p.add(F("/ultimate"));\n'
+    if marker in u:
+        info = '''      JsonArray p2 = user.createNestedArray("Ultimate UI v2");
+      p2.add(F("/ultimate-v2"));
+'''
+        u = u.replace(marker, marker + info, 1)
 
 # WLED 17dev no longer exposes the old doSerializeConfig global. Queue config
 # writes from the JSON callback and perform serializeConfigToFS() later in loop(),
@@ -106,4 +141,4 @@ else:
 u = u.replace("serializeConfig();", "serializeConfigToFS();")
 
 ultimate.write_text(u, encoding="utf-8")
-print("WLED Ultimate 17dev bridge adapted to current UsermodManager + config APIs")
+print("WLED Ultimate 17dev bridge + UI v2 adapted to current UsermodManager + config APIs")
