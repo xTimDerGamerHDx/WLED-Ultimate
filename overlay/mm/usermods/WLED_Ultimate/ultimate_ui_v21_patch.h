@@ -37,8 +37,8 @@ if(fxSearch&&!document.getElementById('v21FxToolbar')){
 renderEffects=function(){
  const q=document.getElementById('effectSearch').value.toLowerCase(),s=seg(),box=document.getElementById('effectList'),favs=getFavs();box.innerHTML='';let shown=0;
  effects.forEach((n,i)=>{const cat=classifyFx(n);if(q&&!String(n).toLowerCase().includes(q))return;if(fxCategory==='fav'&&!favs.has(i))return;if(!['all','fav'].includes(fxCategory)&&cat!==fxCategory)return;shown++;
-  const b=document.createElement('button');b.className='item fx-card'+(Number(s.fx)===i?' active':'');b.innerHTML=`<b>${n}</b><span>FX ${i}</span><em class="fx-tag">${cat}</em><button class="fx-fav ${favs.has(i)?'on':''}" title="Favorit">★</button>`;
-  b.onclick=()=>sendSeg({fx:i});const star=b.querySelector('.fx-fav');star.onclick=e=>{e.stopPropagation();const f=getFavs();f.has(i)?f.delete(i):f.add(i);saveFavs(f);renderEffects()};box.appendChild(b)});
+  const b=document.createElement('div');b.className='item fx-card'+(Number(s.fx)===i?' active':'');b.tabIndex=0;b.setAttribute('role','button');b.innerHTML=`<b>${n}</b><span>FX ${i}</span><em class="fx-tag">${cat}</em><button class="fx-fav ${favs.has(i)?'on':''}" title="Favorit" aria-label="Favorit umschalten">★</button>`;
+  b.onclick=()=>sendSeg({fx:i});b.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();sendSeg({fx:i})}};const star=b.querySelector('.fx-fav');star.onclick=e=>{e.stopPropagation();const f=getFavs();f.has(i)?f.delete(i):f.add(i);saveFavs(f);renderEffects()};star.onkeydown=e=>e.stopPropagation();box.appendChild(b)});
  setText('effectCount',shown+' / '+effects.length+' Effekte');if(!shown)box.innerHTML='<div class="empty">Keine Effekte für diesen Filter gefunden.</div>';
 };
 
