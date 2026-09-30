@@ -9,8 +9,11 @@ on:
     paths:
       - 'webflasher/**'
       - 'config/platformio_override.mm.ini'
+      - 'config/platformio_override.wled17.ini'
       - 'overlay/mm/**'
+      - 'overlay/wled17/**'
       - 'scripts/apply_mm_ultimate.py'
+      - 'scripts/apply_wled17_ultimate.py'
       - '.github/workflows/deploy-web-flasher.yml'
 
 permissions:
@@ -19,12 +22,276 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
-    name: Build GL-C-618WL and deploy flasher
+  build-profiles:
+    name: Web flash / ${{ matrix.env }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - env: ultimate_esp32_4mb
+            channel: MM
+            repository: MoonModules/WLED-MM
+            source_ref: mdev
+            config: config/platformio_override.mm.ini
+            overlay: overlay/mm
+            patch: scripts/apply_mm_ultimate.py
+            chip: esp32
+            family: ESP32
+            boot_offset: '0x1000'
+            slug: mm-esp32-4mb
+            label: ESP32 4 MB
+            description: Ultimate-MM · Standard ESP32 · 4 MB
+          - env: ultimate_esp32_4mb_eth
+            channel: MM
+            repository: MoonModules/WLED-MM
+            source_ref: mdev
+            config: config/platformio_override.mm.ini
+            overlay: overlay/mm
+            patch: scripts/apply_mm_ultimate.py
+            chip: esp32
+            family: ESP32
+            boot_offset: '0x1000'
+            slug: mm-esp32-4mb-eth
+            label: ESP32 4 MB Ethernet
+            description: Ultimate-MM · ESP32 · Ethernet · 4 MB
+          - env: ultimate_gledopto_gl_c_618wl
+            channel: MM
+            repository: MoonModules/WLED-MM
+            source_ref: mdev
+            config: config/platformio_override.mm.ini
+            overlay: overlay/mm
+            patch: scripts/apply_mm_ultimate.py
+            chip: esp32
+            family: ESP32
+            boot_offset: '0x1000'
+            slug: mm-gledopto-gl-c-618wl
+            label: Gledopto GL-C-618WL
+            description: Ultimate-MM · ESP32 · LAN8720 · PDM Mic · 4 MB
+          - env: ultimate_esp32_16mb_eth
+            channel: MM
+            repository: MoonModules/WLED-MM
+            source_ref: mdev
+            config: config/platformio_override.mm.ini
+            overlay: overlay/mm
+            patch: scripts/apply_mm_ultimate.py
+            chip: esp32
+            family: ESP32
+            boot_offset: '0x1000'
+            slug: mm-esp32-16mb-eth
+            label: ESP32 16 MB Ethernet
+            description: Ultimate-MM · ESP32 · Ethernet · 16 MB
+          - env: ultimate_esp32s3_8mb_psram
+            channel: MM
+            repository: MoonModules/WLED-MM
+            source_ref: mdev
+            config: config/platformio_override.mm.ini
+            overlay: overlay/mm
+            patch: scripts/apply_mm_ultimate.py
+            chip: esp32s3
+            family: ESP32-S3
+            boot_offset: '0x0'
+            slug: mm-esp32s3-8mb-psram
+            label: ESP32-S3 8 MB PSRAM
+            description: Ultimate-MM · ESP32-S3 · 8 MB · OPI PSRAM
+          - env: ultimate_esp32s3_16mb_hub75
+            channel: MM
+            repository: MoonModules/WLED-MM
+            source_ref: mdev
+            config: config/platformio_override.mm.ini
+            overlay: overlay/mm
+            patch: scripts/apply_mm_ultimate.py
+            chip: esp32s3
+            family: ESP32-S3
+            boot_offset: '0x0'
+            slug: mm-esp32s3-16mb-hub75
+            label: ESP32-S3 16 MB HUB75
+            description: Ultimate-MM · ESP32-S3 · 16 MB · PSRAM · HUB75
+          - env: ultimate_wled17_esp32
+            channel: 17dev
+            repository: wled/WLED
+            source_ref: main
+            config: config/platformio_override.wled17.ini
+            overlay: overlay/wled17
+            patch: scripts/apply_wled17_ultimate.py
+            chip: esp32
+            family: ESP32
+            boot_offset: '0x1000'
+            slug: 17dev-esp32
+            label: ESP32 17dev
+            description: Ultimate-17dev · Standard ESP32
+          - env: ultimate_wled17_esp32_eth
+            channel: 17dev
+            repository: wled/WLED
+            source_ref: main
+            config: config/platformio_override.wled17.ini
+            overlay: overlay/wled17
+            patch: scripts/apply_wled17_ultimate.py
+            chip: esp32
+            family: ESP32
+            boot_offset: '0x1000'
+            slug: 17dev-esp32-eth
+            label: ESP32 Ethernet 17dev
+            description: Ultimate-17dev · ESP32 · Ethernet
+          - env: ultimate_wled17_esp32s3_8mb
+            channel: 17dev
+            repository: wled/WLED
+            source_ref: main
+            config: config/platformio_override.wled17.ini
+            overlay: overlay/wled17
+            patch: scripts/apply_wled17_ultimate.py
+            chip: esp32s3
+            family: ESP32-S3
+            boot_offset: '0x0'
+            slug: 17dev-esp32s3-8mb
+            label: ESP32-S3 8 MB 17dev
+            description: Ultimate-17dev · ESP32-S3 · 8 MB · OPI PSRAM
+          - env: ultimate_wled17_esp32s3_16mb
+            channel: 17dev
+            repository: wled/WLED
+            source_ref: main
+            config: config/platformio_override.wled17.ini
+            overlay: overlay/wled17
+            patch: scripts/apply_wled17_ultimate.py
+            chip: esp32s3
+            family: ESP32-S3
+            boot_offset: '0x0'
+            slug: 17dev-esp32s3-16mb
+            label: ESP32-S3 16 MB 17dev
+            description: Ultimate-17dev · ESP32-S3 · 16 MB · OPI PSRAM
+
+    steps:
+      - name: Checkout WLED Ultimate
+        uses: actions/checkout@v4
+        with:
+          path: ultimate
+
+      - name: Checkout firmware source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.repository }}
+          ref: ${{ matrix.source_ref }}
+          path: source
+
+      - name: Install PlatformIO
+        run: python -m pip install --upgrade platformio
+
+      - name: Apply WLED Ultimate configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp "ultimate/${{ matrix.config }}" source/platformio_override.ini
+          if [ -d "ultimate/${{ matrix.overlay }}" ]; then
+            rsync -a "ultimate/${{ matrix.overlay }}/" source/
+          fi
+          python "ultimate/${{ matrix.patch }}" source
+
+      - name: Build firmware
+        working-directory: source
+        run: pio run -e ${{ matrix.env }}
+
+      - name: Create browser factory image and manifest
+        shell: bash
+        env:
+          PROFILE_ENV: ${{ matrix.env }}
+          PROFILE_SLUG: ${{ matrix.slug }}
+          PROFILE_LABEL: ${{ matrix.label }}
+          PROFILE_DESCRIPTION: ${{ matrix.description }}
+          PROFILE_CHANNEL: ${{ matrix.channel }}
+          PROFILE_FAMILY: ${{ matrix.family }}
+          PROFILE_CHIP: ${{ matrix.chip }}
+          PROFILE_BOOT_OFFSET: ${{ matrix.boot_offset }}
+        run: |
+          set -euo pipefail
+          BUILD="source/.pio/build/$PROFILE_ENV"
+          ESPTOOL="$(find "$HOME/.platformio/packages" -path '*/tool-esptoolpy/esptool.py' -print -quit)"
+          BOOT_APP0="$(find "$HOME/.platformio/packages" -path '*/framework-arduinoespressif32/tools/partitions/boot_app0.bin' -print -quit)"
+
+          test -f "$BUILD/bootloader.bin"
+          test -f "$BUILD/partitions.bin"
+          test -f "$BUILD/firmware.bin"
+          test -f "$ESPTOOL"
+          test -f "$BOOT_APP0"
+
+          mkdir -p bundle/firmware bundle/manifests bundle/profiles
+
+          python "$ESPTOOL" --chip "$PROFILE_CHIP" merge_bin \
+            -o "bundle/firmware/${PROFILE_SLUG}-factory.bin" \
+            "$PROFILE_BOOT_OFFSET" "$BUILD/bootloader.bin" \
+            0x8000 "$BUILD/partitions.bin" \
+            0xe000 "$BOOT_APP0" \
+            0x10000 "$BUILD/firmware.bin"
+
+          cp "$BUILD/firmware.bin" "bundle/firmware/${PROFILE_SLUG}-firmware.bin"
+
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          slug = os.environ['PROFILE_SLUG']
+          short_sha = os.environ['GITHUB_SHA'][:7]
+          family = os.environ['PROFILE_FAMILY']
+          channel = os.environ['PROFILE_CHANNEL']
+          label = os.environ['PROFILE_LABEL']
+          description = os.environ['PROFILE_DESCRIPTION']
+          env_name = os.environ['PROFILE_ENV']
+
+          factory = Path('bundle/firmware') / f'{slug}-factory.bin'
+          firmware = Path('bundle/firmware') / f'{slug}-firmware.bin'
+
+          manifest = {
+              'name': f'WLED Ultimate {label}',
+              'version': f'ultimate-{short_sha}',
+              'new_install_prompt_erase': False,
+              'builds': [{
+                  'chipFamily': family,
+                  'improv': False,
+                  'parts': [{
+                      'path': f'../firmware/{slug}-factory.bin',
+                      'offset': 0
+                  }]
+              }]
+          }
+          Path(f'bundle/manifests/{slug}.json').write_text(
+              json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
+
+          profile = {
+              'slug': slug,
+              'label': label,
+              'description': description,
+              'channel': channel,
+              'family': family,
+              'environment': env_name,
+              'version': f'ultimate-{short_sha}',
+              'manifest': f'./manifests/{slug}.json',
+              'factory': f'./firmware/{slug}-factory.bin',
+              'firmware': f'./firmware/{slug}-firmware.bin',
+              'factorySize': factory.stat().st_size,
+              'firmwareSize': firmware.stat().st_size
+          }
+          Path(f'bundle/profiles/{slug}.json').write_text(
+              json.dumps(profile, indent=2) + '\n', encoding='utf-8')
+          PY
+
+          echo "Built web-flash profile $PROFILE_SLUG"
+          find bundle -type f -maxdepth 3 -printf '%p %k KB\n' | sort
+
+      - name: Upload web-flash profile
+        uses: actions/upload-artifact@v4
+        with:
+          name: webflash-${{ matrix.slug }}
+          path: bundle
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy:
+    name: Assemble and deploy web flasher
+    needs: build-profiles
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -36,65 +303,21 @@ jobs:
         with:
           path: ultimate
 
-      - name: Checkout WLED-MM
-        uses: actions/checkout@v4
+      - name: Download all web-flash profiles
+        uses: actions/download-artifact@v4
         with:
-          repository: MoonModules/WLED-MM
-          ref: mdev
-          path: source
-
-      - name: Install PlatformIO
-        run: python -m pip install --upgrade platformio
-
-      - name: Apply WLED Ultimate configuration
-        shell: bash
-        run: |
-          set -euo pipefail
-          cp ultimate/config/platformio_override.mm.ini source/platformio_override.ini
-          if [ -d ultimate/overlay/mm ]; then
-            rsync -a ultimate/overlay/mm/ source/
-          fi
-          python ultimate/scripts/apply_mm_ultimate.py source
-
-      - name: Build GL-C-618WL firmware
-        working-directory: source
-        run: pio run -e ultimate_gledopto_gl_c_618wl
-
-      - name: Create browser-safe full flash image
-        shell: bash
-        run: |
-          set -euo pipefail
-          BUILD="source/.pio/build/ultimate_gledopto_gl_c_618wl"
-          ESPTOOL="$(find "$HOME/.platformio/packages" -path '*/tool-esptoolpy/esptool.py' -print -quit)"
-          BOOT_APP0="$(find "$HOME/.platformio/packages" -path '*/framework-arduinoespressif32/tools/partitions/boot_app0.bin' -print -quit)"
-
-          test -f "$BUILD/bootloader.bin"
-          test -f "$BUILD/partitions.bin"
-          test -f "$BUILD/firmware.bin"
-          test -f "$ESPTOOL"
-          test -f "$BOOT_APP0"
-
-          python "$ESPTOOL" --chip esp32 merge_bin \
-            -o "$BUILD/factory.bin" \
-            --flash_mode dio \
-            --flash_freq 40m \
-            --flash_size 4MB \
-            0x1000 "$BUILD/bootloader.bin" \
-            0x8000 "$BUILD/partitions.bin" \
-            0xe000 "$BOOT_APP0" \
-            0x10000 "$BUILD/firmware.bin"
-
-          test -s "$BUILD/factory.bin"
-          ls -lh "$BUILD/factory.bin"
+          pattern: webflash-*
+          path: bundles
+          merge-multiple: true
 
       - name: Assemble web flasher site
         shell: bash
         run: |
           set -euo pipefail
-          BUILD="source/.pio/build/ultimate_gledopto_gl_c_618wl"
-          mkdir -p _site/firmware
+          mkdir -p _site
           cp -a ultimate/webflasher/. _site/
-          cp "$BUILD/factory.bin" "_site/firmware/WLED-Ultimate-GL-C-618WL-factory.bin"
+          cp -a bundles/firmware _site/firmware
+          cp -a bundles/manifests _site/manifests
           touch _site/.nojekyll
 
           python - <<'PY'
@@ -102,25 +325,30 @@ jobs:
           import os
           from pathlib import Path
 
+          profiles = []
+          for path in sorted(Path('bundles/profiles').glob('*.json')):
+              profiles.append(json.loads(path.read_text(encoding='utf-8')))
+
+          order = {'MM': 0, '17dev': 1}
+          profiles.sort(key=lambda p: (order.get(p['channel'], 99), p['family'], p['label']))
+
           site = Path('_site')
-          firmware = site / 'firmware' / 'WLED-Ultimate-GL-C-618WL-factory.bin'
-          sha = os.environ['GITHUB_SHA']
-          short_sha = sha[:7]
-          version = f'ultimate-{short_sha}'
-
-          manifest_path = site / 'manifest-gledopto.json'
-          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-          manifest['version'] = version
-          manifest_path.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
-
-          build_info = {
-              'version': version,
-              'commit': short_sha,
-              'factorySize': firmware.stat().st_size,
-              'board': 'Gledopto GL-C-618WL',
-              'channel': 'Ultimate-MM'
+          data = {
+              'version': f"ultimate-{os.environ['GITHUB_SHA'][:7]}",
+              'commit': os.environ['GITHUB_SHA'][:7],
+              'profileCount': len(profiles),
+              'profiles': profiles
           }
-          (site / 'build-info.json').write_text(json.dumps(build_info, indent=2) + '\n', encoding='utf-8')
+          (site / 'profiles.json').write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')
+          (site / 'build-info.json').write_text(json.dumps({
+              'version': data['version'],
+              'commit': data['commit'],
+              'profiles': len(profiles),
+              'channels': sorted({p['channel'] for p in profiles})
+          }, indent=2) + '\n', encoding='utf-8')
+
+          if len(profiles) != 10:
+              raise SystemExit(f'Expected 10 web-flash profiles, got {len(profiles)}')
           PY
 
           echo "Web flasher package:"
