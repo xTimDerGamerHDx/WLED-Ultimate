@@ -12,6 +12,7 @@ on:
       - 'overlay/wled17/**'
       - 'scripts/apply_mm_ultimate.py'
       - 'scripts/apply_wled17_ultimate.py'
+      - 'scripts/apply_audio_controls_v21.py'
       - '.github/workflows/deploy-web-flasher.yml'
 
 permissions:
