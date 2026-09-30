@@ -1,0 +1,138 @@
+name: Deploy WLED Ultimate Web Flasher
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'webflasher/**'
+      - 'config/platformio_override.mm.ini'
+      - 'overlay/mm/**'
+      - 'scripts/apply_mm_ultimate.py'
+      - '.github/workflows/deploy-web-flasher.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build GL-C-618WL and deploy flasher
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout WLED Ultimate
+        uses: actions/checkout@v4
+        with:
+          path: ultimate
+
+      - name: Checkout WLED-MM
+        uses: actions/checkout@v4
+        with:
+          repository: MoonModules/WLED-MM
+          ref: mdev
+          path: source
+
+      - name: Install PlatformIO
+        run: python -m pip install --upgrade platformio
+
+      - name: Apply WLED Ultimate configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp ultimate/config/platformio_override.mm.ini source/platformio_override.ini
+          if [ -d ultimate/overlay/mm ]; then
+            rsync -a ultimate/overlay/mm/ source/
+          fi
+          python ultimate/scripts/apply_mm_ultimate.py source
+
+      - name: Build GL-C-618WL firmware
+        working-directory: source
+        run: pio run -e ultimate_gledopto_gl_c_618wl
+
+      - name: Create browser-safe full flash image
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD="source/.pio/build/ultimate_gledopto_gl_c_618wl"
+          ESPTOOL="$(find "$HOME/.platformio/packages" -path '*/tool-esptoolpy/esptool.py' -print -quit)"
+          BOOT_APP0="$(find "$HOME/.platformio/packages" -path '*/framework-arduinoespressif32/tools/partitions/boot_app0.bin' -print -quit)"
+
+          test -f "$BUILD/bootloader.bin"
+          test -f "$BUILD/partitions.bin"
+          test -f "$BUILD/firmware.bin"
+          test -f "$ESPTOOL"
+          test -f "$BOOT_APP0"
+
+          python "$ESPTOOL" --chip esp32 merge_bin \
+            -o "$BUILD/factory.bin" \
+            --flash_mode dio \
+            --flash_freq 40m \
+            --flash_size 4MB \
+            0x1000 "$BUILD/bootloader.bin" \
+            0x8000 "$BUILD/partitions.bin" \
+            0xe000 "$BOOT_APP0" \
+            0x10000 "$BUILD/firmware.bin"
+
+          test -s "$BUILD/factory.bin"
+          ls -lh "$BUILD/factory.bin"
+
+      - name: Assemble web flasher site
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD="source/.pio/build/ultimate_gledopto_gl_c_618wl"
+          mkdir -p _site/firmware
+          cp -a ultimate/webflasher/. _site/
+          cp "$BUILD/factory.bin" "_site/firmware/WLED-Ultimate-GL-C-618WL-factory.bin"
+          touch _site/.nojekyll
+
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          site = Path('_site')
+          firmware = site / 'firmware' / 'WLED-Ultimate-GL-C-618WL-factory.bin'
+          sha = os.environ['GITHUB_SHA']
+          short_sha = sha[:7]
+          version = f'ultimate-{short_sha}'
+
+          manifest_path = site / 'manifest-gledopto.json'
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+          manifest['version'] = version
+          manifest_path.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
+
+          build_info = {
+              'version': version,
+              'commit': short_sha,
+              'factorySize': firmware.stat().st_size,
+              'board': 'Gledopto GL-C-618WL',
+              'channel': 'Ultimate-MM'
+          }
+          (site / 'build-info.json').write_text(json.dumps(build_info, indent=2) + '\n', encoding='utf-8')
+          PY
+
+          echo "Web flasher package:"
+          find _site -maxdepth 2 -type f -printf '%p %k KB\n' | sort
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
