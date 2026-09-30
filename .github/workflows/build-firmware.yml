@@ -17,8 +17,33 @@ permissions:
   contents: write
 
 jobs:
+  prepare-preview-release:
+    name: Prepare Ultimate Preview release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create rolling preview release
+        if: github.event_name == 'pull_request' && github.head_ref == 'feature/initial-ultimate-build'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIEW_TAG: ultimate-preview
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          gh release delete "$PREVIEW_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --cleanup-tag \
+            --yes || true
+
+          gh release create "$PREVIEW_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$HEAD_SHA" \
+            --title "WLED Ultimate Preview" \
+            --prerelease \
+            --notes "Rolling preview binaries for all WLED Ultimate MM and 17dev targets. Generated automatically from the current feature branch."
+
   build-mm:
     name: MM / ${{ matrix.env }}
+    needs: prepare-preview-release
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -70,6 +95,16 @@ jobs:
           done
           test -n "$(find dist -type f -name '*.bin' -print -quit)"
 
+      - name: Upload binaries to Ultimate Preview release
+        if: github.event_name == 'pull_request' && github.head_ref == 'feature/initial-ultimate-build'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release upload "ultimate-preview" dist/*.bin \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+
       - name: Upload firmware artifact
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
@@ -81,6 +116,7 @@ jobs:
 
   build-17dev:
     name: 17dev / ${{ matrix.env }}
+    needs: prepare-preview-release
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -129,6 +165,16 @@ jobs:
             cp "$f" "dist/WLED-Ultimate-17dev-${{ matrix.env }}-$(basename "$f")"
           done
           test -n "$(find dist -type f -name '*.bin' -print -quit)"
+
+      - name: Upload binaries to Ultimate Preview release
+        if: github.event_name == 'pull_request' && github.head_ref == 'feature/initial-ultimate-build'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release upload "ultimate-preview" dist/*.bin \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
 
       - name: Upload firmware artifact
         if: github.event_name != 'pull_request'
