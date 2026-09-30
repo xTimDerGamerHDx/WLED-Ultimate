@@ -4,6 +4,27 @@ WLED Ultimate is a custom firmware project that combines the current WLED develo
 
 > Status: early development. Development builds are experimental and should be tested before production use.
 
+## Web Flasher
+
+WLED Ultimate includes a browser-based USB installer powered by ESP Web Tools.
+
+Web Flasher URL after GitHub Pages deployment:
+
+- https://xtimdergamerhdx.github.io/WLED-Ultimate/
+
+Currently supported in the Web Flasher:
+
+- **Gledopto Elite 4D-EXMU / GL-C-618WL**
+- complete factory image at flash offset `0x0`
+- bootloader + WLED Ultimate partition table + OTA data + firmware
+- ESP32 / 4 MB / DIO / 40 MHz
+- automatic build information in the UI
+- HTTPS/Web Serial capability checks
+
+The first WLED Ultimate installation on the GL-C-618WL is a **full flash** because the controller needs the larger WLED Ultimate OTA partition layout. Back up WLED settings and presets first. After the factory installation, normal future updates can use the GL-C-618WL `firmware.bin` through WLED OTA.
+
+The Pages workflow is located at `.github/workflows/deploy-web-flasher.yml`. On the first deployment, configure the repository under **Settings → Pages → Build and deployment → Source → GitHub Actions** if Pages has not already been enabled.
+
 ## Build channels
 
 ### Ultimate-MM
@@ -52,11 +73,12 @@ Targets:
 ## Repository layout
 
 ```text
-.github/workflows/      CI firmware builds
+.github/workflows/      CI firmware builds + Web Flasher deployment
 config/                 PlatformIO overrides for each build channel
 docs/                   architecture, board and porting notes
 overlay/                 WLED Ultimate source overlays/patches
 scripts/                 sync/merge/validation helpers
+webflasher/              browser-based USB installer UI + manifests
 ```
 
 ## Build locally
