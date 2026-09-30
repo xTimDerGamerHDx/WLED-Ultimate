@@ -128,9 +128,9 @@ extern "C" void wledUltimate17SetAudioTuning(uint8_t gain, uint8_t squelch, uint
   sampleGain = gain;
   soundSquelch = squelch;
   inputLevel = input;
-  soundAgc = min<uint8_t>(agc, 3);
-  FFTScalingMode = min<uint8_t>(fftScale, 3);
-  audioSyncEnabled = min<uint8_t>(syncMode, 2);
+  soundAgc = agc > 3 ? 3 : agc;
+  FFTScalingMode = fftScale > 3 ? 3 : fftScale;
+  audioSyncEnabled = syncMode > 2 ? 2 : syncMode;
 }
 '''
         audio.write_text(a, encoding="utf-8")
@@ -202,9 +202,11 @@ extern "C" void wledUltimate17SetAudioTuning(uint8_t gain, uint8_t squelch, uint
     print("Ultimate UI v2.1 AudioReactive controls wired for WLED 17dev")
 
 
-if (source / "wled00" / "usermods_list.cpp").exists():
-    wire_mm()
-elif (source / "usermods" / "audioreactive" / "audio_reactive.cpp").exists():
+# WLED 17dev also contains wled00/, so detect it by the Ultimate .cpp and the
+# upstream AudioReactive translation unit before falling back to MoonModules.
+if (source / "usermods" / "WLED_Ultimate" / "usermod_wled_ultimate.cpp").exists() and (source / "usermods" / "audioreactive" / "audio_reactive.cpp").exists():
     wire_17dev()
+elif (source / "usermods" / "WLED_Ultimate" / "usermod_wled_ultimate.h").exists() and (source / "wled00" / "usermods_list.cpp").exists():
+    wire_mm()
 else:
     raise SystemExit("unable to detect WLED-MM or WLED 17dev source tree")
