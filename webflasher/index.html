@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07100d">
+  <meta name="description" content="WLED Ultimate Web Flasher für den Gledopto GL-C-618WL">
+  <title>WLED Ultimate Web Flasher</title>
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050807;
+      --panel: rgba(12, 20, 17, 0.92);
+      --panel-2: rgba(15, 29, 23, 0.82);
+      --line: rgba(116, 255, 181, 0.18);
+      --text: #edf7f1;
+      --muted: #98ada2;
+      --accent: #3cff9a;
+      --accent-2: #20d8ff;
+      --warn: #ffc857;
+      --danger: #ff5c72;
+      --ok: #55f991;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.48);
+      --esp-tools-button-color: #35ee8b;
+      --esp-tools-button-text-color: #04100a;
+      --esp-tools-button-border-radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: var(--bg); }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 18% 0%, rgba(60,255,154,.13), transparent 34rem),
+        radial-gradient(circle at 95% 18%, rgba(32,216,255,.10), transparent 30rem),
+        linear-gradient(180deg, #050907 0%, #050807 70%);
+    }
+
+    a { color: var(--accent); }
+    .shell { width: min(1120px, calc(100% - 28px)); margin: 0 auto; padding: 28px 0 56px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: .02em; }
+    .brand-mark {
+      width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center;
+      background: linear-gradient(145deg, rgba(60,255,154,.24), rgba(32,216,255,.12));
+      border: 1px solid rgba(60,255,154,.25); box-shadow: inset 0 0 18px rgba(60,255,154,.08);
+    }
+    .brand-mark svg { width: 25px; height: 25px; }
+    .pill { padding: 7px 11px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font-size: 12px; background: rgba(255,255,255,.025); }
+
+    .hero {
+      position: relative; overflow: hidden; padding: clamp(24px, 5vw, 52px); border-radius: 28px;
+      border: 1px solid var(--line); background: linear-gradient(145deg, rgba(14,25,20,.95), rgba(7,13,11,.94));
+      box-shadow: var(--shadow);
+    }
+    .hero::after {
+      content: ""; position: absolute; width: 360px; height: 360px; right: -160px; top: -180px;
+      border-radius: 50%; background: rgba(60,255,154,.11); filter: blur(4px); pointer-events: none;
+    }
+    .eyebrow { color: var(--accent); font-size: 13px; text-transform: uppercase; letter-spacing: .16em; font-weight: 800; }
+    h1 { margin: 12px 0 14px; font-size: clamp(34px, 7vw, 68px); line-height: .98; letter-spacing: -.045em; max-width: 820px; }
+    .lead { max-width: 760px; margin: 0; color: #b8cbc1; font-size: clamp(16px, 2.5vw, 20px); line-height: 1.65; }
+
+    .status-grid, .main-grid { display: grid; gap: 16px; }
+    .status-grid { grid-template-columns: repeat(3, 1fr); margin-top: 28px; }
+    .status { display: flex; gap: 11px; align-items: center; min-height: 62px; padding: 14px; border-radius: 16px; background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.06); }
+    .dot { width: 10px; height: 10px; border-radius: 999px; flex: 0 0 auto; background: #69766f; box-shadow: 0 0 0 5px rgba(255,255,255,.025); }
+    .status.ok .dot { background: var(--ok); box-shadow: 0 0 18px rgba(85,249,145,.65); }
+    .status.bad .dot { background: var(--danger); box-shadow: 0 0 18px rgba(255,92,114,.55); }
+    .status strong { display:block; font-size:13px; }
+    .status span { display:block; margin-top:3px; font-size:12px; color:var(--muted); }
+
+    .main-grid { grid-template-columns: minmax(0, 1.45fr) minmax(280px, .75fr); margin-top: 18px; }
+    .card { border: 1px solid var(--line); border-radius: 22px; background: var(--panel); box-shadow: var(--shadow); }
+    .card-body { padding: 24px; }
+    .card h2 { margin: 0 0 8px; font-size: 21px; }
+    .sub { color: var(--muted); margin: 0; line-height: 1.55; }
+
+    .board { margin-top: 20px; padding: 18px; border-radius: 18px; border: 1px solid rgba(60,255,154,.26); background: linear-gradient(140deg, rgba(60,255,154,.08), rgba(32,216,255,.035)); }
+    .board-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .board-title { font-size: 18px; font-weight: 800; }
+    .board-code { margin-top: 4px; color: var(--muted); font-size: 13px; }
+    .ready { color: var(--ok); font-size: 12px; font-weight: 800; background: rgba(85,249,145,.09); border: 1px solid rgba(85,249,145,.2); padding: 6px 9px; border-radius: 999px; white-space: nowrap; }
+    .specs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin: 16px 0 0; }
+    .spec { padding: 10px 12px; border-radius: 12px; background: rgba(0,0,0,.18); color: #bad0c4; font-size: 12px; }
+
+    .warning { margin-top: 18px; padding: 15px 16px; border-radius: 15px; color: #ffe7ac; background: rgba(255,200,87,.07); border: 1px solid rgba(255,200,87,.24); font-size: 13px; line-height: 1.55; }
+    .warning strong { color: var(--warn); }
+
+    .installer { margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.06); }
+    .install-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+    esp-web-install-button { display: inline-block; }
+    .flash-button {
+      appearance: none; border: 0; cursor: pointer; padding: 14px 20px; border-radius: 14px;
+      font: inherit; font-weight: 900; color: #04100a; background: linear-gradient(135deg, var(--accent), #7affbd);
+      box-shadow: 0 10px 30px rgba(60,255,154,.18); transition: transform .15s ease, filter .15s ease;
+    }
+    .flash-button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+    .flash-button:active { transform: translateY(0); }
+    .helper { font-size: 12px; color: var(--muted); }
+
+    .side-list { margin: 18px 0 0; padding: 0; list-style: none; display: grid; gap: 11px; counter-reset: steps; }
+    .side-list li { position: relative; padding: 13px 13px 13px 46px; border-radius: 14px; background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.05); color: #b9cdc2; font-size: 13px; line-height: 1.5; }
+    .side-list li::before { counter-increment: steps; content: counter(steps); position:absolute; left:13px; top:13px; width:24px; height:24px; border-radius:8px; display:grid; place-items:center; color:#06100b; background:var(--accent); font-weight:900; font-size:12px; }
+
+    .meta { margin-top: 16px; display: grid; gap: 9px; }
+    .meta-row { display:flex; justify-content:space-between; gap:14px; padding: 10px 0; border-bottom:1px solid rgba(255,255,255,.055); font-size:12px; }
+    .meta-row:last-child { border-bottom:0; }
+    .meta-row span:first-child { color:var(--muted); }
+    .meta-row span:last-child { color:#d8e6de; text-align:right; overflow-wrap:anywhere; }
+
+    .future { margin-top: 18px; padding: 18px 20px; border-radius: 18px; border: 1px dashed rgba(255,255,255,.10); color: var(--muted); background: rgba(255,255,255,.018); }
+    .future strong { color: #d7e4dd; }
+    footer { margin-top: 22px; text-align: center; color: #718078; font-size: 12px; line-height: 1.7; }
+    .unsupported-box { color: #ffd3da; background: rgba(255,92,114,.08); border:1px solid rgba(255,92,114,.25); border-radius:12px; padding:12px 14px; display:inline-block; }
+
+    @media (max-width: 820px) {
+      .status-grid, .main-grid { grid-template-columns: 1fr; }
+      .status-grid { gap: 9px; }
+      .topbar { align-items: flex-start; }
+      .pill { display:none; }
+    }
+    @media (max-width: 520px) {
+      .shell { width:min(100% - 18px, 1120px); padding-top:16px; }
+      .hero, .card { border-radius:20px; }
+      .hero, .card-body { padding:18px; }
+      .specs { grid-template-columns:1fr; }
+      .board-head { flex-direction:column; }
+      h1 { font-size:38px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M13.3 2 5 13h6l-.4 9L19 10h-6l.3-8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        </div>
+        <div>WLED Ultimate</div>
+      </div>
+      <div class="pill">USB Web Flasher · ESP32</div>
+    </div>
+
+    <section class="hero">
+      <div class="eyebrow">WLED Ultimate Installer</div>
+      <h1>Flashen. Verbinden. Leuchten. ⚡</h1>
+      <p class="lead">Installiere WLED Ultimate direkt über USB im Browser. Der erste GL-C-618WL-Flash schreibt die neue größere Partitionstabelle und beseitigt damit den OTA-Fehler <strong>Not Enough Space</strong>.</p>
+
+      <div class="status-grid">
+        <div class="status" id="secureStatus"><div class="dot"></div><div><strong>HTTPS</strong><span id="secureText">wird geprüft …</span></div></div>
+        <div class="status" id="serialStatus"><div class="dot"></div><div><strong>Web Serial</strong><span id="serialText">wird geprüft …</span></div></div>
+        <div class="status ok"><div class="dot"></div><div><strong>Factory Image</strong><span>Bootloader + Partition + Firmware</span></div></div>
+      </div>
+    </section>
+
+    <div class="main-grid">
+      <section class="card">
+        <div class="card-body">
+          <h2>Controller auswählen</h2>
+          <p class="sub">Aktuell ist der dedizierte Gledopto-Build freigeschaltet. Weitere Ultimate-Boards können später dieselbe Oberfläche nutzen.</p>
+
+          <div class="board">
+            <div class="board-head">
+              <div>
+                <div class="board-title">Gledopto Elite 4D-EXMU</div>
+                <div class="board-code">Model GL-C-618WL · WLED Ultimate-MM</div>
+              </div>
+              <div class="ready">● READY</div>
+            </div>
+            <div class="specs">
+              <div class="spec">ESP32 · 4 MB Flash</div>
+              <div class="spec">LAN8720 Ethernet</div>
+              <div class="spec">PDM Mikrofon integriert</div>
+              <div class="spec">4 × LED-Ausgang</div>
+            </div>
+          </div>
+
+          <div class="warning"><strong>Achtung: Full Flash.</strong> Beim erstmaligen Wechsel auf WLED Ultimate wird der Flash gelöscht und die Partitionstabelle neu geschrieben. Sichere vorher Presets und Konfiguration. Verwende diese Factory-Installation nicht als normales OTA-Update.</div>
+
+          <div class="installer">
+            <div class="install-row">
+              <esp-web-install-button manifest="./manifest-gledopto.json">
+                <button class="flash-button" slot="activate">GL-C-618WL installieren</button>
+                <span class="unsupported-box" slot="unsupported">Dieser Browser unterstützt Web Serial nicht. Nutze Chrome oder Edge auf einem Desktop-System.</span>
+                <span class="unsupported-box" slot="not-allowed">Web Serial benötigt eine sichere HTTPS-Verbindung.</span>
+              </esp-web-install-button>
+              <div class="helper">USB verbinden → Button drücken → seriellen Port auswählen</div>
+            </div>
+          </div>
+
+          <div class="future"><strong>Geplant:</strong> ESP32 4 MB, ESP32 Ethernet, ESP32-S3 8 MB PSRAM und ESP32-S3 16 MB/HUB75 als weitere auswählbare Profile.</div>
+        </div>
+      </section>
+
+      <aside class="card">
+        <div class="card-body">
+          <h2>So funktioniert es</h2>
+          <ol class="side-list">
+            <li>WLED-Konfiguration und Presets sichern.</li>
+            <li>GL-C-618WL per USB mit dem Computer verbinden.</li>
+            <li><strong>GL-C-618WL installieren</strong> drücken und den richtigen COM-Port wählen.</li>
+            <li>Installation vollständig durchlaufen lassen und den Controller neu starten.</li>
+            <li>Danach zukünftige Updates wieder normal per WLED OTA mit der <code>firmware.bin</code> installieren.</li>
+          </ol>
+
+          <div class="meta">
+            <div class="meta-row"><span>Build</span><span id="buildVersion">wird geladen …</span></div>
+            <div class="meta-row"><span>Commit</span><span id="buildCommit">—</span></div>
+            <div class="meta-row"><span>Firmware</span><span id="buildSize">—</span></div>
+            <div class="meta-row"><span>Flash-Modus</span><span>DIO · 40 MHz · 4 MB</span></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <footer>
+      WLED Ultimate ist ein Community-Projekt auf Basis von WLED und MoonModules/WLED-MM.<br>
+      Flashen geschieht auf eigene Verantwortung. Spannungen und LED-Verkabelung vor dem Einschalten prüfen.
+    </footer>
+  </main>
+
+  <script>
+    const setStatus = (id, textId, ok, text) => {
+      const el = document.getElementById(id);
+      el.classList.remove('ok', 'bad');
+      el.classList.add(ok ? 'ok' : 'bad');
+      document.getElementById(textId).textContent = text;
+    };
+
+    setStatus('secureStatus', 'secureText', window.isSecureContext, window.isSecureContext ? 'sichere Verbindung' : 'HTTPS erforderlich');
+    const hasSerial = 'serial' in navigator;
+    setStatus('serialStatus', 'serialText', hasSerial, hasSerial ? 'Browser unterstützt USB' : 'Chrome/Edge Desktop verwenden');
+
+    fetch('./build-info.json', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(info => {
+        document.getElementById('buildVersion').textContent = info.version || 'WLED Ultimate';
+        document.getElementById('buildCommit').textContent = info.commit || '—';
+        document.getElementById('buildSize').textContent = info.factorySize ? `${(info.factorySize / 1024 / 1024).toFixed(2)} MB` : '—';
+      })
+      .catch(() => {
+        document.getElementById('buildVersion').textContent = 'WLED Ultimate';
+      });
+  </script>
+</body>
+</html>
