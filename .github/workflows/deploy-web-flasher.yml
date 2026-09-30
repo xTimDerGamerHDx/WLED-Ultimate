@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - feature/**
     paths:
       - 'webflasher/**'
       - 'config/platformio_override.mm.ini'
