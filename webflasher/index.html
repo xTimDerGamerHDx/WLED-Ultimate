@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07100d">
+  <meta name="description" content="WLED Ultimate USB Web Flasher für alle Ultimate ESP32 und ESP32-S3 Builds">
+  <title>WLED Ultimate USB Flasher</title>
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+  <style>
+    :root{color-scheme:dark;--bg:#050807;--panel:rgba(12,20,17,.94);--panel2:rgba(15,29,23,.84);--line:rgba(116,255,181,.18);--text:#edf7f1;--muted:#98ada2;--accent:#3cff9a;--accent2:#20d8ff;--warn:#ffc857;--danger:#ff5c72;--ok:#55f991;--shadow:0 24px 80px rgba(0,0,0,.48);--esp-tools-button-color:#35ee8b;--esp-tools-button-text-color:#04100a;--esp-tools-button-border-radius:14px}
+    *{box-sizing:border-box}html{min-height:100%;background:var(--bg)}body{margin:0;min-height:100vh;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);background:radial-gradient(circle at 18% 0%,rgba(60,255,154,.13),transparent 34rem),radial-gradient(circle at 95% 18%,rgba(32,216,255,.10),transparent 30rem),linear-gradient(180deg,#050907 0%,#050807 70%)}
+    a{color:var(--accent);text-decoration:none}button,input,select{font:inherit}.shell{width:min(1220px,calc(100% - 28px));margin:0 auto;padding:28px 0 56px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}.brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:.02em}.brand-mark{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(60,255,154,.24),rgba(32,216,255,.12));border:1px solid rgba(60,255,154,.25);box-shadow:inset 0 0 18px rgba(60,255,154,.08)}.brand-mark svg{width:25px;height:25px}.pill{padding:7px 11px;border-radius:999px;border:1px solid var(--line);color:var(--muted);font-size:12px;background:rgba(255,255,255,.025)}
+    .hero{position:relative;overflow:hidden;padding:clamp(24px,5vw,52px);border-radius:28px;border:1px solid var(--line);background:linear-gradient(145deg,rgba(14,25,20,.95),rgba(7,13,11,.94));box-shadow:var(--shadow)}.hero:after{content:"";position:absolute;width:360px;height:360px;right:-160px;top:-180px;border-radius:50%;background:rgba(60,255,154,.11);pointer-events:none}.eyebrow{color:var(--accent);font-size:13px;text-transform:uppercase;letter-spacing:.16em;font-weight:900}h1{margin:12px 0 14px;font-size:clamp(34px,7vw,68px);line-height:.98;letter-spacing:-.045em;max-width:940px}.lead{max-width:850px;margin:0;color:#b8cbc1;font-size:clamp(16px,2.5vw,20px);line-height:1.65}.status-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:28px}.status{display:flex;gap:11px;align-items:center;min-height:62px;padding:14px;border-radius:16px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06)}.dot{width:10px;height:10px;border-radius:99px;flex:0 0 auto;background:#69766f;box-shadow:0 0 0 5px rgba(255,255,255,.025)}.status.ok .dot{background:var(--ok);box-shadow:0 0 18px rgba(85,249,145,.65)}.status.bad .dot{background:var(--danger);box-shadow:0 0 18px rgba(255,92,114,.55)}.status strong{display:block;font-size:13px}.status span{display:block;margin-top:3px;font-size:12px;color:var(--muted)}
+    .card{margin-top:18px;border:1px solid var(--line);border-radius:22px;background:var(--panel);box-shadow:var(--shadow)}.card-body{padding:24px}.card h2{margin:0 0 8px;font-size:22px}.sub{color:var(--muted);margin:0;line-height:1.55}.toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.filter{appearance:none;border:1px solid rgba(255,255,255,.09);background:#09110e;color:#dcebe3;border-radius:12px;padding:10px 13px;cursor:pointer}.filter.active{border-color:rgba(60,255,154,.45);background:rgba(60,255,154,.09);color:var(--accent)}
+    .profiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px}.profile{padding:18px;border:1px solid rgba(255,255,255,.075);border-radius:18px;background:linear-gradient(145deg,rgba(255,255,255,.028),rgba(255,255,255,.012))}.profile.featured{border-color:rgba(60,255,154,.32);background:linear-gradient(145deg,rgba(60,255,154,.07),rgba(32,216,255,.025))}.profile-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.profile h3{margin:0;font-size:17px}.desc{color:var(--muted);font-size:12px;line-height:1.5;margin-top:5px}.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.tag{font-size:11px;padding:5px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.08);color:#bcd0c5;background:rgba(0,0,0,.15)}.tag.green{color:var(--accent);border-color:rgba(60,255,154,.2);background:rgba(60,255,154,.06)}.size{font-size:11px;color:var(--muted);white-space:nowrap}.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:15px}.btn{appearance:none;border:0;cursor:pointer;padding:11px 14px;border-radius:12px;font-weight:850;transition:transform .15s ease,filter .15s ease}.btn:hover{transform:translateY(-1px);filter:brightness(1.06)}.btn:disabled{opacity:.42;cursor:not-allowed;transform:none}.primary{color:#04100a;background:linear-gradient(135deg,var(--accent),#7affbd)}.secondary{color:#dff8ea;background:rgba(60,255,154,.08);border:1px solid rgba(60,255,154,.22)}.blue{color:#dffaff;background:rgba(32,216,255,.07);border:1px solid rgba(32,216,255,.20)}.danger{color:#ffe4e8;background:rgba(255,92,114,.08);border:1px solid rgba(255,92,114,.23)}.unsupported-box{color:#ffd3da;background:rgba(255,92,114,.08);border:1px solid rgba(255,92,114,.25);border-radius:12px;padding:12px 14px;display:inline-block;font-size:12px}.notice{margin-top:16px;padding:14px 15px;border-radius:14px;font-size:13px;line-height:1.55;color:#ffe7ac;background:rgba(255,200,87,.07);border:1px solid rgba(255,200,87,.22)}
+    .advanced-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,.75fr);gap:16px;margin-top:18px}.panel{padding:18px;border-radius:18px;background:rgba(255,255,255,.018);border:1px solid rgba(255,255,255,.06)}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}.field{display:grid;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:12px;color:#b8cbc1;font-weight:750}.control{width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:#09110e;color:var(--text);padding:11px 12px;outline:none}.control:focus{border-color:rgba(60,255,154,.5);box-shadow:0 0 0 3px rgba(60,255,154,.08)}.filebox{padding:15px;border:1px dashed rgba(60,255,154,.28);border-radius:14px;background:rgba(60,255,154,.03)}.filemeta{margin-top:8px;color:var(--muted);font-size:12px;overflow-wrap:anywhere}.toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:#c9d9d0}.toggle input{width:18px;height:18px;accent-color:var(--accent)}.progress-head{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px;margin:14px 0 7px}.progress{height:10px;border-radius:99px;background:#07100c;border:1px solid rgba(255,255,255,.06);overflow:hidden}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .15s ease}.terminal{margin-top:14px;min-height:210px;max-height:330px;overflow:auto;padding:14px;border-radius:14px;background:#030604;border:1px solid rgba(255,255,255,.07);font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#b9f6d1;white-space:pre-wrap;word-break:break-word}.chip{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:8px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.08);font-size:12px;color:var(--muted)}.empty{grid-column:1/-1;padding:28px;text-align:center;color:var(--muted);border:1px dashed rgba(255,255,255,.09);border-radius:16px}.loading{animation:pulse 1.25s ease-in-out infinite alternate}@keyframes pulse{to{opacity:.45}}footer{margin-top:22px;text-align:center;color:#718078;font-size:12px;line-height:1.7}
+    @media(max-width:930px){.status-grid{grid-template-columns:repeat(2,1fr)}.profiles,.advanced-grid{grid-template-columns:1fr}}@media(max-width:600px){.shell{width:min(100% - 18px,1220px);padding-top:16px}.hero,.card{border-radius:20px}.hero,.card-body{padding:18px}.status-grid,.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.pill{display:none}h1{font-size:38px}.profile-head{flex-direction:column}.size{white-space:normal}}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <div class="topbar">
+    <div class="brand"><div class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M13.3 2 5 13h6l-.4 9L19 10h-6l.3-8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div><div>WLED Ultimate</div></div>
+    <div class="pill">Multi-Board USB Web Flasher</div>
+  </div>
+
+  <section class="hero">
+    <div class="eyebrow">WLED Ultimate Installer</div>
+    <h1>Alle Ultimate-Builds direkt per USB flashen. ⚡</h1>
+    <p class="lead">Wähle dein ESP32- oder ESP32-S3-Profil. Der Installer lädt das passende Full-Flash-Image mit Bootloader, Partitionstabelle und Firmware automatisch. MM und 17dev sind getrennt auswählbar.</p>
+    <div class="status-grid">
+      <div class="status" id="secureStatus"><div class="dot"></div><div><strong>HTTPS</strong><span id="secureText">wird geprüft …</span></div></div>
+      <div class="status" id="serialStatus"><div class="dot"></div><div><strong>Web Serial</strong><span id="serialText">wird geprüft …</span></div></div>
+      <div class="status" id="profilesStatus"><div class="dot"></div><div><strong>Firmware-Profile</strong><span id="profilesText">werden geladen …</span></div></div>
+      <div class="status ok"><div class="dot"></div><div><strong>Full Flash</strong><span>Factory-Image pro Target</span></div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-body">
+      <h2>Firmware auswählen</h2>
+      <p class="sub">Der grüne Installieren-Button verwendet ESP Web Tools. Factory-BIN ist für Erstinstallation/Partitionswechsel gedacht; die normale firmware.bin ist für spätere OTA-Updates oder den erweiterten USB-Flasher.</p>
+      <div class="toolbar">
+        <button class="filter active" data-filter="all">Alle</button>
+        <button class="filter" data-filter="MM">Ultimate-MM</button>
+        <button class="filter" data-filter="17dev">Ultimate-17dev</button>
+        <button class="filter" data-filter="ESP32">ESP32</button>
+        <button class="filter" data-filter="ESP32-S3">ESP32-S3</button>
+      </div>
+      <div class="profiles" id="profiles"><div class="empty loading">Firmware-Profile werden aus dem aktuellen Build geladen …</div></div>
+      <div class="notice"><strong>Wichtig:</strong> Wähle nur ein Profil, das zu deinem Board und seiner Flash-Größe passt. Beim Factory-Flash können Partitionierung und vorhandene Einstellungen überschrieben werden. Presets/Konfiguration vorher sichern.</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-body">
+      <h2>Erweiterter USB-Flasher</h2>
+      <p class="sub">Für lokale BIN-Dateien oder um eine der oben gebauten Factory-/Firmware-Dateien direkt in den Flasher zu laden. Das angeschlossene ESP-Modell wird beim Verbinden erkannt.</p>
+      <div class="advanced-grid">
+        <div class="panel">
+          <div class="filebox">
+            <input id="firmwareFile" type="file" accept=".bin,application/octet-stream">
+            <div class="filemeta" id="fileMeta">Noch keine BIN geladen.</div>
+          </div>
+          <div class="form-grid">
+            <div class="field"><label>Offset-Preset</label><select class="control" id="offsetPreset"><option value="0x0">Factory / merged · 0x0</option><option value="0x10000">Firmware/App · 0x10000</option><option value="custom">Benutzerdefiniert</option></select></div>
+            <div class="field"><label>Flash-Offset</label><input class="control" id="offsetInput" value="0x0"></div>
+            <div class="field"><label>Baudrate</label><select class="control" id="baudrate"><option>921600</option><option>460800</option><option>230400</option><option>115200</option></select></div>
+            <div class="field"><label>Flash-Größe</label><select class="control" id="flashSize"><option value="keep">keep</option><option value="detect">detect</option><option value="4MB">4 MB</option><option value="8MB">8 MB</option><option value="16MB">16 MB</option></select></div>
+            <div class="field"><label>Flash-Mode</label><select class="control" id="flashMode"><option value="keep">keep</option><option value="dio">DIO</option><option value="qio">QIO</option><option value="dout">DOUT</option><option value="qout">QOUT</option></select></div>
+            <div class="field"><label>Flash-Frequenz</label><select class="control" id="flashFreq"><option value="keep">keep</option><option value="40m">40 MHz</option><option value="80m">80 MHz</option><option value="20m">20 MHz</option><option value="26m">26 MHz</option></select></div>
+            <div class="field full"><label class="toggle"><input type="checkbox" id="eraseAll"> Flash vor dem Schreiben vollständig löschen</label></div>
+          </div>
+          <div class="actions">
+            <button class="btn secondary" id="connectBtn">USB verbinden / Chip erkennen</button>
+            <button class="btn primary" id="flashBtn" disabled>BIN flashen</button>
+            <button class="btn danger" id="eraseBtn" disabled>Flash löschen</button>
+            <button class="btn blue" id="disconnectBtn" disabled>Trennen</button>
+          </div>
+          <div class="chip">Erkannt: <strong id="chipName">nicht verbunden</strong></div>
+          <div class="progress-head"><span id="progressLabel">Bereit</span><span id="progressValue">0%</span></div>
+          <div class="progress"><div class="bar" id="progressBar"></div></div>
+        </div>
+        <div class="panel">
+          <strong>Live-Protokoll</strong>
+          <div class="terminal" id="terminal">WLED Ultimate USB Flasher bereit.\n</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>WLED Ultimate · Browser-Flasher für ESP32 / ESP32-S3 · Web Serial benötigt HTTPS und einen unterstützten Desktop-Browser.</footer>
+</main>
+
+<script>
+  const secure=window.isSecureContext;
+  const serial='serial' in navigator;
+  const ss=document.getElementById('secureStatus'),st=document.getElementById('secureText');
+  const rs=document.getElementById('serialStatus'),rt=document.getElementById('serialText');
+  ss.classList.add(secure?'ok':'bad');st.textContent=secure?'sichere Verbindung aktiv':'HTTPS erforderlich';
+  rs.classList.add(serial?'ok':'bad');rt.textContent=serial?'Web Serial verfügbar':'Web Serial nicht verfügbar';
+</script>
+
+<script type="module">
+  import { ESPLoader, Transport } from 'https://unpkg.com/esptool-js@0.6.1/bundle.js';
+
+  const $=id=>document.getElementById(id);
+  const profilesEl=$('profiles'), profilesStatus=$('profilesStatus'), profilesText=$('profilesText');
+  const fileInput=$('firmwareFile'),fileMeta=$('fileMeta'),offsetPreset=$('offsetPreset'),offsetInput=$('offsetInput');
+  const baudrate=$('baudrate'),flashSize=$('flashSize'),flashMode=$('flashMode'),flashFreq=$('flashFreq'),eraseAll=$('eraseAll');
+  const connectBtn=$('connectBtn'),flashBtn=$('flashBtn'),eraseBtn=$('eraseBtn'),disconnectBtn=$('disconnectBtn');
+  const terminalEl=$('terminal'),chipName=$('chipName'),progressBar=$('progressBar'),progressLabel=$('progressLabel'),progressValue=$('progressValue');
+
+  let profiles=[];
+  let activeFilter='all';
+  let loader=null,transport=null,detectedChip='';
+  let firmwareData=null,firmwareName='',expectedFamily='';
+
+  const log=m=>{terminalEl.textContent+=`[${new Date().toLocaleTimeString()}] ${m}\n`;terminalEl.scrollTop=terminalEl.scrollHeight};
+  const fmt=n=>n<1024?`${n} B`:n<1048576?`${(n/1024).toFixed(1)} KB`:`${(n/1048576).toFixed(2)} MB`;
+  const progress=(pct,label)=>{const p=Math.max(0,Math.min(100,Number(pct)||0));progressBar.style.width=p+'%';progressValue.textContent=Math.round(p)+'%';if(label)progressLabel.textContent=label};
+  const normChip=s=>String(s||'').toUpperCase().replaceAll('_','-');
+  const updateButtons=()=>{flashBtn.disabled=!loader||!firmwareData;eraseBtn.disabled=!loader;disconnectBtn.disabled=!transport;connectBtn.disabled=!!loader};
+  const setBusy=v=>{flashBtn.disabled=v||!loader||!firmwareData;eraseBtn.disabled=v||!loader;disconnectBtn.disabled=v||!transport;connectBtn.disabled=v||!!loader};
+
+  function profileCard(p){
+    const featured=p.slug.includes('gledopto');
+    const div=document.createElement('article');
+    div.className='profile'+(featured?' featured':'');
+    div.dataset.channel=p.channel;div.dataset.family=p.family;
+    div.innerHTML=`
+      <div class="profile-head">
+        <div><h3>${p.label}</h3><div class="desc">${p.description}</div></div>
+        <div class="size">Factory ${fmt(p.factorySize)}<br>App ${fmt(p.firmwareSize)}</div>
+      </div>
+      <div class="tags"><span class="tag green">${p.channel}</span><span class="tag">${p.family}</span><span class="tag">${p.version}</span></div>
+      <div class="actions install-slot"></div>
+    `;
+    const actions=div.querySelector('.install-slot');
+    const installer=document.createElement('esp-web-install-button');
+    installer.setAttribute('manifest',p.manifest);
+    const installBtn=document.createElement('button');installBtn.className='btn primary';installBtn.slot='activate';installBtn.textContent='Factory per USB installieren';installer.appendChild(installBtn);
+    const unsupported=document.createElement('span');unsupported.className='unsupported-box';unsupported.slot='unsupported';unsupported.textContent='Web Serial wird in diesem Browser nicht unterstützt.';installer.appendChild(unsupported);
+    const notAllowed=document.createElement('span');notAllowed.className='unsupported-box';notAllowed.slot='not-allowed';notAllowed.textContent='HTTPS/Web Serial Berechtigung erforderlich.';installer.appendChild(notAllowed);
+    actions.appendChild(installer);
+    const loadFactory=document.createElement('button');loadFactory.className='btn secondary';loadFactory.textContent='Factory in Profi-Flasher';loadFactory.onclick=()=>loadRemote(p,'factory');actions.appendChild(loadFactory);
+    const loadApp=document.createElement('button');loadApp.className='btn blue';loadApp.textContent='firmware.bin in Profi-Flasher';loadApp.onclick=()=>loadRemote(p,'firmware');actions.appendChild(loadApp);
+    const dl=document.createElement('a');dl.className='btn blue';dl.href=p.firmware;dl.download='';dl.textContent='OTA-BIN herunterladen';actions.appendChild(dl);
+    return div;
+  }
+
+  function renderProfiles(){
+    profilesEl.innerHTML='';
+    const shown=profiles.filter(p=>activeFilter==='all'||p.channel===activeFilter||p.family===activeFilter);
+    if(!shown.length){profilesEl.innerHTML='<div class="empty">Keine Profile für diesen Filter.</div>';return}
+    shown.forEach(p=>profilesEl.appendChild(profileCard(p)));
+  }
+
+  document.querySelectorAll('.filter').forEach(btn=>btn.addEventListener('click',()=>{
+    document.querySelectorAll('.filter').forEach(b=>b.classList.remove('active'));btn.classList.add('active');activeFilter=btn.dataset.filter;renderProfiles();
+  }));
+
+  try{
+    const r=await fetch('./profiles.json',{cache:'no-store'});if(!r.ok)throw new Error(`HTTP ${r.status}`);
+    const data=await r.json();profiles=data.profiles||[];renderProfiles();
+    profilesStatus.classList.add(profiles.length?'ok':'bad');profilesText.textContent=`${profiles.length} Profile · ${data.version||'Build'}`;
+    log(`${profiles.length} automatisch gebaute Firmware-Profile geladen.`);
+  }catch(e){
+    profilesStatus.classList.add('bad');profilesText.textContent='Profile konnten nicht geladen werden';
+    profilesEl.innerHTML='<div class="empty">profiles.json ist noch nicht verfügbar. Warte auf den aktuellen Pages-Deploy.</div>';log('Profil-Ladefehler: '+e.message);
+  }
+
+  async function loadRemote(p,type){
+    const url=type==='factory'?p.factory:p.firmware;
+    const name=url.split('/').pop();
+    try{
+      progress(3,`${name} wird geladen …`);log(`Lade ${p.label}: ${name}`);
+      const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(`HTTP ${r.status}`);
+      firmwareData=new Uint8Array(await r.arrayBuffer());firmwareName=name;expectedFamily=p.family;
+      const off=type==='factory'?'0x0':'0x10000';offsetPreset.value=off;offsetInput.value=off;
+      fileMeta.textContent=`${name} · ${fmt(firmwareData.byteLength)} · ${p.label} · ${p.channel}`;
+      progress(0,'BIN bereit');log(`BIN geladen: ${firmwareName} (${firmwareData.byteLength} Bytes), Offset ${off}`);updateButtons();
+      document.querySelector('.advanced-grid').scrollIntoView({behavior:'smooth',block:'center'});
+    }catch(e){progress(0,'Ladefehler');log('FEHLER beim Laden: '+e.message)}
+  }
+
+  fileInput.addEventListener('change',async()=>{
+    const f=fileInput.files?.[0];
+    if(!f){firmwareData=null;firmwareName='';expectedFamily='';fileMeta.textContent='Noch keine BIN geladen.';updateButtons();return}
+    firmwareData=new Uint8Array(await f.arrayBuffer());firmwareName=f.name;expectedFamily='';fileMeta.textContent=`${f.name} · ${fmt(f.size)} · lokal`;log(`Lokale BIN geladen: ${f.name} (${f.size} Bytes)`);updateButtons();
+  });
+
+  offsetPreset.addEventListener('change',()=>{if(offsetPreset.value!=='custom')offsetInput.value=offsetPreset.value});
+  offsetInput.addEventListener('input',()=>{if(!['0x0','0x10000'].includes(offsetInput.value.trim()))offsetPreset.value='custom'});
+
+  const terminal={clean(){terminalEl.textContent=''},writeLine(data){log(data)},write(data){terminalEl.textContent+=data;terminalEl.scrollTop=terminalEl.scrollHeight}};
+
+  connectBtn.addEventListener('click',async()=>{
+    if(!('serial' in navigator)){log('Web Serial ist nicht verfügbar. Nutze Chrome/Edge Desktop.');return}
+    try{
+      setBusy(true);progress(0,'USB-Port auswählen …');
+      const port=await navigator.serial.requestPort();transport=new Transport(port,true);
+      loader=new ESPLoader({transport,baudrate:Number(baudrate.value),terminal,debugLogging:false});
+      log('Verbinde mit ESP Bootloader …');detectedChip=await loader.main();chipName.textContent=detectedChip||'ESP erkannt';log('Chip erkannt: '+chipName.textContent);progress(0,'Verbunden');
+    }catch(e){log('VERBINDUNGSFEHLER: '+(e?.message||e));loader=null;transport=null;detectedChip='';chipName.textContent='nicht verbunden';progress(0,'Verbindung fehlgeschlagen')}
+    finally{setBusy(false);updateButtons()}
+  });
+
+  flashBtn.addEventListener('click',async()=>{
+    if(!loader||!firmwareData)return;
+    let address;
+    try{address=Number(BigInt(offsetInput.value.trim()))}catch{log('Ungültiger Flash-Offset. Beispiel: 0x0 oder 0x10000');return}
+    if(expectedFamily){
+      const got=normChip(detectedChip),want=normChip(expectedFamily);
+      const match=want==='ESP32-S3'?got.includes('ESP32-S3'):got.includes('ESP32')&&!got.includes('ESP32-S3');
+      if(!match){log(`ABBRUCH: Profil erwartet ${expectedFamily}, erkannt wurde ${detectedChip}.`);progress(0,'Falscher Chip');return}
+    }
+    const what=`${firmwareName}\nOffset: 0x${address.toString(16).toUpperCase()}\nGröße: ${fmt(firmwareData.byteLength)}`;
+    if(!confirm(`Firmware wirklich flashen?\n\n${what}\n\nEin falsches Profil/Offset kann den ESP unbootbar machen.`))return;
+    try{
+      setBusy(true);progress(0,'Flash wird vorbereitet …');log(`Flash: ${firmwareName} -> 0x${address.toString(16).toUpperCase()}`);
+      await loader.writeFlash({
+        fileArray:[{data:firmwareData,address}],
+        flashMode:flashMode.value,
+        flashFreq:flashFreq.value,
+        flashSize:flashSize.value,
+        eraseAll:eraseAll.checked,
+        compress:true,
+        reportProgress:(i,written,total)=>progress(total?written/total*100:0,'Schreibe Flash …')
+      });
+      progress(100,'Flash erfolgreich');log('FLASH ERFOLGREICH. ESP wird zurückgesetzt …');
+      try{await loader.after('hard_reset')}catch(e){log('Reset-Hinweis: '+e.message)}
+    }catch(e){progress(0,'Flash fehlgeschlagen');log('FLASH-FEHLER: '+(e?.message||e))}
+    finally{setBusy(false);updateButtons()}
+  });
+
+  eraseBtn.addEventListener('click',async()=>{
+    if(!loader||!confirm('Gesamten ESP-Flash wirklich löschen?'))return;
+    try{setBusy(true);progress(0,'Lösche Flash …');log('Erase Flash gestartet …');await loader.eraseFlash();progress(100,'Flash gelöscht');log('Flash vollständig gelöscht.')}catch(e){progress(0,'Löschen fehlgeschlagen');log('ERASE-FEHLER: '+(e?.message||e))}finally{setBusy(false);updateButtons()}
+  });
+
+  disconnectBtn.addEventListener('click',async()=>{
+    try{if(transport)await transport.disconnect();log('USB getrennt.')}catch(e){log('Trennen: '+(e?.message||e))}finally{loader=null;transport=null;detectedChip='';chipName.textContent='nicht verbunden';progress(0,'Getrennt');updateButtons()}
+  });
+
+  navigator.serial?.addEventListener?.('disconnect',()=>{loader=null;transport=null;detectedChip='';chipName.textContent='nicht verbunden';log('USB-Gerät wurde getrennt.');progress(0,'USB getrennt');updateButtons()});
+  updateButtons();
+</script>
+</body>
+</html>

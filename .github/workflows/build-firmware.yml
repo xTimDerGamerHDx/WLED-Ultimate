@@ -1,0 +1,238 @@
+name: Build WLED Ultimate firmware
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+
+concurrency:
+  group: wled-ultimate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-preview-release:
+    name: Prepare Ultimate Preview release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create rolling preview release
+        if: github.event_name == 'pull_request' && github.head_ref == 'feature/initial-ultimate-build'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIEW_TAG: ultimate-preview
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          gh release delete "$PREVIEW_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --cleanup-tag \
+            --yes || true
+
+          gh release create "$PREVIEW_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$HEAD_SHA" \
+            --title "WLED Ultimate Preview" \
+            --prerelease \
+            --notes "Rolling preview binaries for all WLED Ultimate MM and 17dev targets. Generated automatically from the current feature branch."
+
+  build-mm:
+    name: MM / ${{ matrix.env }}
+    needs: prepare-preview-release
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env:
+          - ultimate_esp32_4mb
+          - ultimate_esp32_4mb_eth
+          - ultimate_gledopto_gl_c_618wl
+          - ultimate_esp32_16mb_eth
+          - ultimate_esp32s3_8mb_psram
+          - ultimate_esp32s3_16mb_hub75
+
+    steps:
+      - name: Checkout WLED Ultimate
+        uses: actions/checkout@v4
+        with:
+          path: ultimate
+
+      - name: Checkout WLED-MM
+        uses: actions/checkout@v4
+        with:
+          repository: MoonModules/WLED-MM
+          ref: mdev
+          path: source
+
+      - name: Install PlatformIO
+        run: python -m pip install --upgrade platformio
+
+      - name: Apply WLED Ultimate configuration
+        shell: bash
+        run: |
+          cp ultimate/config/platformio_override.mm.ini source/platformio_override.ini
+          if [ -d ultimate/overlay/mm ]; then
+            rsync -a ultimate/overlay/mm/ source/
+          fi
+          python ultimate/scripts/apply_mm_ultimate.py source
+
+      - name: Build firmware
+        working-directory: source
+        run: pio run -e ${{ matrix.env }}
+
+      - name: Create GL-C-618WL full flash image
+        if: matrix.env == 'ultimate_gledopto_gl_c_618wl'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD="source/.pio/build/${{ matrix.env }}"
+          ESPTOOL="$(find "$HOME/.platformio/packages" -path '*/tool-esptoolpy/esptool.py' -print -quit)"
+          BOOT_APP0="$(find "$HOME/.platformio/packages" -path '*/framework-arduinoespressif32/tools/partitions/boot_app0.bin' -print -quit)"
+
+          test -f "$BUILD/bootloader.bin"
+          test -f "$BUILD/partitions.bin"
+          test -f "$BUILD/firmware.bin"
+          test -f "$ESPTOOL"
+          test -f "$BOOT_APP0"
+
+          python "$ESPTOOL" --chip esp32 merge_bin \
+            -o "$BUILD/factory.bin" \
+            --flash_mode dio \
+            --flash_freq 40m \
+            --flash_size 4MB \
+            0x1000 "$BUILD/bootloader.bin" \
+            0x8000 "$BUILD/partitions.bin" \
+            0xe000 "$BOOT_APP0" \
+            0x10000 "$BUILD/firmware.bin"
+
+          test -s "$BUILD/factory.bin"
+          echo "Created GL-C-618WL factory image:"
+          ls -lh "$BUILD/factory.bin"
+
+      - name: Collect binaries
+        shell: bash
+        run: |
+          mkdir -p dist
+          shopt -s nullglob
+          for f in source/.pio/build/${{ matrix.env }}/*.bin; do
+            cp "$f" "dist/WLED-Ultimate-MM-${{ matrix.env }}-$(basename "$f")"
+          done
+          test -n "$(find dist -type f -name '*.bin' -print -quit)"
+
+      - name: Upload binaries to Ultimate Preview release
+        if: github.event_name == 'pull_request' && github.head_ref == 'feature/initial-ultimate-build'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release upload "ultimate-preview" dist/*.bin \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+
+      - name: Upload firmware artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: WLED-Ultimate-MM-${{ matrix.env }}
+          path: dist/*.bin
+          if-no-files-found: error
+          retention-days: 1
+
+  build-17dev:
+    name: 17dev / ${{ matrix.env }}
+    needs: prepare-preview-release
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env:
+          - ultimate_wled17_esp32
+          - ultimate_wled17_esp32_eth
+          - ultimate_wled17_esp32s3_8mb
+          - ultimate_wled17_esp32s3_16mb
+
+    steps:
+      - name: Checkout WLED Ultimate
+        uses: actions/checkout@v4
+        with:
+          path: ultimate
+
+      - name: Checkout upstream WLED
+        uses: actions/checkout@v4
+        with:
+          repository: wled/WLED
+          ref: main
+          path: source
+
+      - name: Install PlatformIO
+        run: python -m pip install --upgrade platformio
+
+      - name: Apply WLED Ultimate configuration
+        shell: bash
+        run: |
+          cp ultimate/config/platformio_override.wled17.ini source/platformio_override.ini
+          if [ -d ultimate/overlay/wled17 ]; then
+            rsync -a ultimate/overlay/wled17/ source/
+          fi
+          python ultimate/scripts/apply_wled17_ultimate.py source
+
+      - name: Build firmware
+        working-directory: source
+        run: pio run -e ${{ matrix.env }}
+
+      - name: Collect binaries
+        shell: bash
+        run: |
+          mkdir -p dist
+          shopt -s nullglob
+          for f in source/.pio/build/${{ matrix.env }}/*.bin; do
+            cp "$f" "dist/WLED-Ultimate-17dev-${{ matrix.env }}-$(basename "$f")"
+          done
+          test -n "$(find dist -type f -name '*.bin' -print -quit)"
+
+      - name: Upload binaries to Ultimate Preview release
+        if: github.event_name == 'pull_request' && github.head_ref == 'feature/initial-ultimate-build'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release upload "ultimate-preview" dist/*.bin \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+
+      - name: Upload firmware artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: WLED-Ultimate-17dev-${{ matrix.env }}
+          path: dist/*.bin
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs:
+      - build-mm
+      - build-17dev
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all firmware artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" artifacts/*.bin \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "WLED Ultimate ${GITHUB_REF_NAME}" \
+            --generate-notes
